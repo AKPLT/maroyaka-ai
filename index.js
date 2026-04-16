@@ -115,6 +115,10 @@ async function fetchAndCleanLogs(channel, cutoff) {
         !m.author.bot && !m.content.startsWith("/") && m.content.trim() !== "",
     )
     .map((m) => {
+      // サーバーを抜けたユーザーなどの場合、memberがnullになることがあるので「|| m.author.username」を付けておくと安全です
+      const authorName =
+        m.member?.displayName || m.author.displayName || m.author.username;
+
       let text = m.content
         .replace(/https?:\/\/[\w/:%#\$&\?\(\)~\.=\+\-]+/g, "")
         .replace(
@@ -123,7 +127,8 @@ async function fetchAndCleanLogs(channel, cutoff) {
         )
         .replace(/<a?:\w+:\d+>/g, "")
         .trim();
-      return text ? `[#${channel.name}] ${m.author.username}: ${text}` : null;
+
+      return text ? `[#${channel.name}] ${authorName}: ${text}` : null;
     })
     .filter((log) => log !== null);
 }
@@ -146,9 +151,16 @@ client.on("interactionCreate", async (interaction) => {
 
       if (commandName === "news") {
         console.log("全チャンネルの巡回を開始...");
-        const channels = interaction.guild.channels.cache.filter(
-          (c) => c.isTextBased() && !c.isThread() && c.viewable,
-        );
+        const channels = interaction.guild.channels.cache.filter((c) => {
+          // 条件1: テキストベース & スレッド以外
+          const isBasicValid = c.isTextBased() && !c.isThread();
+          // 条件2: ★ プライベートチャンネル除外 (@everyoneが見れるかチェック)
+          const isPublic = c
+            .permissionsFor(interaction.guild.roles.everyone)
+            ?.has("ViewChannel");
+
+          return isBasicValid && isPublic;
+        });
 
         for (const [id, channel] of channels) {
           console.log(`取得中... #${channel.name}`);
