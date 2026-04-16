@@ -34,7 +34,7 @@ const commands = [
     .setDescription("チャンネルの24時間をまろやかに要約します"),
   new SlashCommandBuilder()
     .setName("haiku")
-    .setDescription("24時間の出来事を五・七・五で詠みます"),
+    .setDescription("サーバー全体の24時間の出来事を五・七・五で詠みます"),
 ].map((command) => command.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(token);
