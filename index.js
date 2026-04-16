@@ -39,6 +39,9 @@ const commands = [
     .setName("haiku")
     .setDescription("サーバー全体の24時間の出来事を五・七・五で詠みます"),
   new SlashCommandBuilder()
+    .setName("suggesttopic")
+    .setDescription("過去の会話をもとに、次の話題を提案します"),
+  new SlashCommandBuilder()
     .setName("setnewschannel")
     .setDescription("定期配信先チャンネルを設定します")
     .addChannelOption((option) =>
@@ -428,6 +431,11 @@ async function createHaikuSummary(logText) {
   return generateAiSummary(prompts.haiku, logText);
 }
 
+async function createTopicSuggestion(logText) {
+  if (!logText) return null;
+  return generateAiSummary(prompts.topic, logText);
+}
+
 async function postScheduledNews(channel) {
   if (!channel || !channel.isTextBased() || channel.isThread()) return;
 
@@ -546,6 +554,36 @@ async function handleSetNewsTime(interaction) {
   });
 }
 
+async function handleSuggestTopic(interaction) {
+  await interaction.deferReply();
+
+  const logText = await collectChannelLogs(interaction.channel);
+  if (!logText) {
+    return interaction.editReply(
+      "このチャンネルの過去24時間の会話が見つかりませんでした。もう少し会話が増えてから再度試してください。",
+    );
+  }
+
+  console.log("話題提案を生成中...");
+  try {
+    const suggestion = await createTopicSuggestion(logText);
+    if (!suggestion) {
+      return interaction.editReply(
+        "話題の提案に失敗しました。もう一度お試しください。",
+      );
+    }
+
+    return interaction.editReply(
+      `過去の会話をもとに、次の話題としておすすめしたいのは次のとおりです：\n\n${suggestion}`,
+    );
+  } catch (error) {
+    console.error("Topic suggestion error:", error);
+    return interaction.editReply(
+      "申し訳ありません、話題提案の生成中にエラーが発生しました。",
+    );
+  }
+}
+
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -562,6 +600,11 @@ client.on("interactionCreate", async (interaction) => {
 
   if (commandName === "getnewschannel") {
     await handleGetNewsChannel(interaction);
+    return;
+  }
+
+  if (commandName === "suggesttopic") {
+    await handleSuggestTopic(interaction);
     return;
   }
 
