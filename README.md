@@ -49,6 +49,7 @@ OLLAMA_MODEL=使うモデル名
 - `DISCORD_GUILD_IDS`: コマンドを登録する Guild ID のカンマ区切りリスト
 - `OLLAMA_HOST_IP`: Ollama サーバーのホスト IP（例: `127.0.0.1`）
 - `OLLAMA_MODEL`: 使用する Ollama モデル名
+- `DISCORD_NEWS_CHANNEL_ID`: 定期配信先の Discord チャンネル ID
 
 ## 実行方法
 
