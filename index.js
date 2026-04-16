@@ -31,7 +31,10 @@ const commands = [
     .setDescription("サーバー全体の24時間をまろやかに要約します"),
   new SlashCommandBuilder()
     .setName("summary")
-    .setDescription("このチャンネルだけの24時間を要約します"),
+    .setDescription("チャンネルの24時間をまろやかに要約します"),
+  new SlashCommandBuilder()
+    .setName("haiku")
+    .setDescription("24時間の出来事を五・七・五で詠みます"),
 ].map((command) => command.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(token);
@@ -60,41 +63,50 @@ const rest = new REST({ version: "10" }).setToken(token);
     const guildIds = process.env.DISCORD_GUILD_IDS
       ? process.env.DISCORD_GUILD_IDS.split(",")
       : [];
-    if (guildIds.length === 0) {
-      console.warn("DISCORD_GUILD_IDS が設定されていません。");
-      return;
-    }
+    if (guildIds.length === 0)
+      return console.warn("GUILD_IDSが設定されていません。");
 
-    console.log("スラッシュコマンドを各サーバーに即時登録中...");
+    console.log("スラッシュコマンドを登録中...");
     for (const guildId of guildIds) {
       await rest.put(
         Routes.applicationGuildCommands(clientId, guildId.trim()),
         { body: commands },
       );
     }
-    console.log("全サーバーへの登録が完了しました！");
+    console.log("登録完了！");
   } catch (error) {
-    console.error("コマンド登録エラー:", error);
+    console.error("登録エラー:", error);
   }
 })();
 
-// --- メッセージ取得・クリーンアップ関数 ---
+// --- API制限対策付き：メッセージ取得関数 ---
 async function fetchAndCleanLogs(channel, cutoff) {
   let lastId = null;
   let channelAllMessages = [];
 
-  while (true) {
-    const options = { limit: 100 };
-    if (lastId) options.before = lastId;
+  try {
+    let fetchCount = 0;
+    while (fetchCount < 500) {
+      // 安全のため1チャンネル500件まで
+      const options = { limit: 100 };
+      if (lastId) options.before = lastId;
 
-    const fetched = await channel.messages.fetch(options);
-    if (fetched.size === 0) break;
+      const fetched = await channel.messages.fetch(options).catch(() => null);
+      if (!fetched || fetched.size === 0) break;
 
-    const validMessages = fetched.filter((m) => m.createdTimestamp > cutoff);
-    channelAllMessages.push(...validMessages.values());
+      const validMessages = fetched.filter((m) => m.createdTimestamp > cutoff);
+      channelAllMessages.push(...validMessages.values());
 
-    if (fetched.size < 100 || fetched.last().createdTimestamp <= cutoff) break;
-    lastId = fetched.last().id;
+      fetchCount += fetched.size;
+      if (fetched.size < 100 || fetched.last().createdTimestamp <= cutoff)
+        break;
+      lastId = fetched.last().id;
+
+      // API制限を避けるための短い待機
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  } catch (err) {
+    console.error(`[#${channel.name}] 取得エラー: ${err.message}`);
   }
 
   return channelAllMessages
@@ -104,12 +116,12 @@ async function fetchAndCleanLogs(channel, cutoff) {
     )
     .map((m) => {
       let text = m.content
-        .replace(/https?:\/\/[\w/:%#\$&\?\(\)~\.=\+\-]+/g, "") // URL除去
+        .replace(/https?:\/\/[\w/:%#\$&\?\(\)~\.=\+\-]+/g, "")
         .replace(
           /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu,
           "",
-        ) // 絵文字除去
-        .replace(/<a?:\w+:\d+>/g, "") // カスタム絵文字除去
+        )
+        .replace(/<a?:\w+:\d+>/g, "")
         .trim();
       return text ? `[#${channel.name}] ${m.author.username}: ${text}` : null;
     })
@@ -124,7 +136,7 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   const { commandName } = interaction;
-  if (commandName === "news" || commandName === "summary") {
+  if (["news", "summary", "haiku"].includes(commandName)) {
     await interaction.deferReply();
 
     try {
@@ -137,14 +149,15 @@ client.on("interactionCreate", async (interaction) => {
         const channels = interaction.guild.channels.cache.filter(
           (c) => c.isTextBased() && !c.isThread() && c.viewable,
         );
+
         for (const [id, channel] of channels) {
+          console.log(`取得中... #${channel.name}`);
           const logs = await fetchAndCleanLogs(channel, cutoff);
           allLogs.push(...logs);
+          await new Promise((resolve) => setTimeout(resolve, 500)); // チャンネル間待機
         }
       } else {
-        console.log(`${interaction.channel.name} の取得を開始...`);
-        const logs = await fetchAndCleanLogs(interaction.channel, cutoff);
-        allLogs.push(...logs);
+        allLogs = await fetchAndCleanLogs(interaction.channel, cutoff);
       }
 
       const finalLog = allLogs.reverse().join("\n");
@@ -153,6 +166,7 @@ client.on("interactionCreate", async (interaction) => {
           "過去24時間に新しい投稿は見つかりませんでしたっ",
         );
 
+      console.log(`Ollama (${modelName}) に送信中...`);
       const promptConfig = prompts[commandName];
       const response = await ollama.chat({
         model: modelName,
@@ -172,16 +186,18 @@ client.on("interactionCreate", async (interaction) => {
       );
 
       const title =
-        commandName === "news"
-          ? "サーバー全体"
-          : `#${interaction.channel.name}`;
+        commandName === "haiku"
+          ? "今日の一句"
+          : commandName === "news"
+            ? "サーバー全体"
+            : `#${interaction.channel.name}`;
       await interaction.editReply(
-        `${title}の24時間をまろやかにまとめましたっ\n\n${replyContent.trim()}`,
+        `${title}をまとめましたっ\n\n${replyContent.trim()}`,
       );
     } catch (error) {
       console.error("Error:", error);
       await interaction.editReply(
-        "ごめんなさい、要約中にエラーが起きちゃいました。",
+        "ごめんなさい、処理中にエラーが起きちゃいました。",
       );
     }
   }
