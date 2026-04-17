@@ -27,6 +27,7 @@ const commands = [
   aiCommand("title",       "今日活躍したメンバーに称号を授けます"),
   aiCommand("wanted",      "今日一番やらかしたメンバーの指名手配書を作成します"),
   aiCommand("drama",       "今日の会話を昼ドラ風のあらすじにします"),
+  aiCommand("report",      "今日の会話を業務報告書風にまとめます"),
   new SlashCommandBuilder()
     .setName("setnewschannel")
     .setDescription("定期配信先チャンネルを設定します")
