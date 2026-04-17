@@ -3,10 +3,18 @@ const path = require("path");
 const { Ollama } = require("ollama");
 const thinkingMessages = require("../data/thinkingMessages");
 const { CommandInteractionOptionResolver } = require("discord.js");
+const { haiku } = require("./prompts");
 
 const ROOT = path.join(__dirname, "..");
+const { fetch: undiciFetch, Agent } = require("undici");
+const ollamaAgent = new Agent({
+  headersTimeout: parseInt(process.env.OLLAMA_TIMEOUT_MS ?? "300000", 10),
+  bodyTimeout: parseInt(process.env.OLLAMA_TIMEOUT_MS ?? "300000", 10),
+});
 const ollama = new Ollama({
   host: `http://${process.env.OLLAMA_HOST_IP}:11434`,
+  fetch: (url, opts) =>
+    undiciFetch(url, { ...opts, dispatcher: ollamaAgent }),
 });
 const modelNameCommon = process.env.OLLAMA_MODEL;
 const modelNameHaiku = process.env.OLLAMA_HAIKU_MODEL;
@@ -63,7 +71,7 @@ async function validateOutput(
 async function generateAiSummary(
   promptConfig,
   logText,
-  validate = true,
+  validate = false,
   onProgress = null,
   targetModel = modelNameCommon,
 ) {
@@ -97,6 +105,11 @@ async function generateAiSummary(
             { role: "system", content: promptConfig.system },
             { role: "user", content: promptConfig.user(truncatedLog) },
           ],
+          options: {
+            temperature: 0.5, // 低くすると「事実に基づいた堅実な回答」になります（推奨: 0.2〜0.5）
+            top_p: 0.9, // 語彙の多様性を少し抑えて一貫性を保ちます
+            num_predict: 4096, // 出力が長すぎないように最大トークンを制限
+          },
         },
         { signal: AbortSignal.timeout(ollamaTimeoutMs) },
       );
