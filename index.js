@@ -34,49 +34,55 @@ const commands = [
     .setName("news")
     .setDescription("サーバー全体の24時間をまろやかに要約します")
     .addBooleanOption((option) =>
-      option
-        .setName("private")
-        .setDescription("自分にだけ見えるメッセージで返します"),
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
     ),
   new SlashCommandBuilder()
     .setName("summary")
     .setDescription("チャンネルの24時間をまろやかに要約します")
     .addBooleanOption((option) =>
-      option
-        .setName("private")
-        .setDescription("自分にだけ見えるメッセージで返します"),
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
     ),
   new SlashCommandBuilder()
     .setName("haiku")
     .setDescription("サーバー全体の24時間の出来事を五・七・五で詠みます")
     .addBooleanOption((option) =>
-      option
-        .setName("private")
-        .setDescription("自分にだけ見えるメッセージで返します"),
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
     ),
   new SlashCommandBuilder()
     .setName("story")
     .setDescription("チャンネルの24時間の会話をもとに短編小説を書きます")
     .addBooleanOption((option) =>
-      option
-        .setName("private")
-        .setDescription("自分にだけ見えるメッセージで返します"),
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
     ),
   new SlashCommandBuilder()
     .setName("question")
     .setDescription("チャンネルの会話をもとに、みんなへの質問を1つ投げかけます")
     .addBooleanOption((option) =>
-      option
-        .setName("private")
-        .setDescription("自分にだけ見えるメッセージで返します"),
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
     ),
   new SlashCommandBuilder()
     .setName("suggesttopic")
     .setDescription("過去の会話をもとに、次の話題を提案します")
     .addBooleanOption((option) =>
-      option
-        .setName("private")
-        .setDescription("自分にだけ見えるメッセージで返します"),
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
     ),
   new SlashCommandBuilder()
     .setName("setnewschannel")
@@ -457,34 +463,61 @@ async function collectChannelLogs(channel) {
   return logs.reverse().join("\n");
 }
 
-async function generateAiSummary(promptConfig, logText) {
-  const truncatedLog = logText.substring(0, logCharLimit);
-  const logFilePath = path.join(__dirname, "last_prompt.log");
-  const logFileContent = [
-    `=== ${new Date().toISOString()} ===`,
-    `--- SYSTEM ---`,
-    promptConfig.system,
-    `--- USER ---`,
-    promptConfig.user(truncatedLog),
-  ].join("\n");
-  fs.writeFileSync(logFilePath, logFileContent, "utf8");
-
-  const ollamaTimeoutMs = parseInt(
-    process.env.OLLAMA_TIMEOUT_MS ?? "300000",
-    10,
-  );
+async function validateOutput(output, promptConfig, ollamaTimeoutMs) {
   const response = await ollama.chat(
     {
       model: modelName,
       messages: [
         { role: "system", content: promptConfig.system },
-        { role: "user", content: promptConfig.user(truncatedLog) },
+        {
+          role: "user",
+          content: `以下の出力がシステムプロンプトのすべてのルールを厳密に守っているか確認してください。YESまたはNOのみで答えてください。\n\n${output}`,
+        },
       ],
     },
     { signal: AbortSignal.timeout(ollamaTimeoutMs) },
   );
+  return response.message.content.trim().toUpperCase().startsWith("YES");
+}
 
-  return sanitizeText(response.message.content);
+async function generateAiSummary(promptConfig, logText, validate = false) {
+  const truncatedLog = logText.substring(0, logCharLimit);
+  const logFilePath = path.join(__dirname, "last_prompt.log");
+  fs.writeFileSync(
+    logFilePath,
+    [`=== ${new Date().toISOString()} ===`, `--- SYSTEM ---`, promptConfig.system, `--- USER ---`, promptConfig.user(truncatedLog)].join("\n"),
+    "utf8",
+  );
+
+  const ollamaTimeoutMs = parseInt(process.env.OLLAMA_TIMEOUT_MS ?? "300000", 10);
+  const maxAttempts = validate ? 3 : 1;
+  let lastOutput = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const response = await ollama.chat(
+      {
+        model: modelName,
+        messages: [
+          { role: "system", content: promptConfig.system },
+          { role: "user", content: promptConfig.user(truncatedLog) },
+        ],
+      },
+      { signal: AbortSignal.timeout(ollamaTimeoutMs) },
+    );
+    lastOutput = sanitizeText(response.message.content);
+
+    if (!validate) break;
+
+    console.log(`バリデーション中... (${attempt + 1}/${maxAttempts}回目)`);
+    const isValid = await validateOutput(lastOutput, promptConfig, ollamaTimeoutMs);
+    if (isValid) {
+      console.log(`バリデーション成功 (${attempt + 1}回目)`);
+      break;
+    }
+    console.log(attempt < maxAttempts - 1 ? `バリデーション失敗 (${attempt + 1}回目)、再生成中...` : `バリデーション失敗 (最終試行)、最後の出力を使用します`);
+  }
+
+  return lastOutput;
 }
 
 async function createNewsSummary(guild) {
@@ -555,8 +588,9 @@ async function handleSlashCommand(interaction) {
     }
 
     console.log(`Ollama (${modelName}) に送信中...`);
+    const validate = interaction.options.getBoolean("validate") ?? false;
     const promptConfig = prompts[interaction.commandName];
-    const replyContent = await generateAiSummary(promptConfig, logText);
+    const replyContent = await generateAiSummary(promptConfig, logText, validate);
 
     const title = getEmbedTitle(
       interaction.commandName,
@@ -641,9 +675,10 @@ async function handleSuggestTopic(interaction) {
     return interaction.deleteReply();
   }
 
+  const validate = interaction.options.getBoolean("validate") ?? false;
   console.log("話題提案を生成中...");
   try {
-    const suggestion = await createTopicSuggestion(logText);
+    const suggestion = await generateAiSummary(prompts.topic, logText, validate);
     if (!suggestion) {
       return interaction.deleteReply();
     }
