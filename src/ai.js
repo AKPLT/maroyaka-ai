@@ -1,9 +1,9 @@
-require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const { Ollama } = require("ollama");
-const thinkingMessages = require("./thinkingMessages");
+const thinkingMessages = require("../data/thinkingMessages");
 
+const ROOT = path.join(__dirname, "..");
 const ollama = new Ollama({ host: `http://${process.env.OLLAMA_HOST_IP}:11434` });
 const modelName = process.env.OLLAMA_MODEL;
 const logCharLimit = parseInt(process.env.LOG_CHAR_LIMIT ?? "16000", 10);
@@ -44,9 +44,8 @@ async function validateOutput(output, promptConfig, ollamaTimeoutMs) {
 
 async function generateAiSummary(promptConfig, logText, validate = false, onProgress = null) {
   const truncatedLog = logText.substring(0, logCharLimit);
-  const logFilePath = path.join(__dirname, "last_prompt.log");
   fs.writeFileSync(
-    logFilePath,
+    path.join(ROOT, "last_prompt.log"),
     [
       `=== ${new Date().toISOString()} ===`,
       `--- SYSTEM ---`,

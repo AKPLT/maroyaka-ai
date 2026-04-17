@@ -4,26 +4,30 @@ const { collectServerLogs, collectChannelLogs } = require("./logs");
 const { generateAiSummary } = require("./ai");
 const schedule = require("./schedule");
 
-const AI_COMMANDS = ["news", "summary", "haiku", "story", "question", "mvp", "fortune", "title", "wanted", "drama", "report"];
+const AI_COMMANDS = [
+  "news", "summary", "haiku", "story", "question",
+  "mvp", "fortune", "title", "wanted", "drama", "report",
+];
 
 let isProcessing = false;
 
 const BUSY_MESSAGE = "今ほかのコマンドを処理中ですっ！もう少しだけ待ってくださいねっ";
 
+const EMBED_TITLES = {
+  haiku:   "今日の一句ですっ",
+  news:    "24時間のニュースですっ",
+  story:   "今日の物語ですっ",
+  question:"ちょっといい？",
+  mvp:     "今日のMVPですっ",
+  fortune: "今日のおみくじですっ",
+  title:   "今日の称号ですっ",
+  wanted:  "🚨 本日の指名手配 🚨",
+  drama:   "今日の昼ドラですっ",
+  report:  "本日の業務報告ですっ",
+};
+
 function getEmbedTitle(commandName, channelName) {
-  const titles = {
-    haiku:   "今日の一句ですっ",
-    news:    "24時間のニュースですっ",
-    story:   "今日の物語ですっ",
-    question:"ちょっといい？",
-    mvp:     "今日のMVPですっ",
-    fortune: "今日のおみくじですっ",
-    title:   "今日の称号ですっ",
-    wanted:  "🚨 本日の指名手配 🚨",
-    drama:   "今日の昼ドラですっ",
-    report:  "本日の業務報告ですっ",
-  };
-  return titles[commandName] ?? `#${channelName} の24時間ですっ`;
+  return EMBED_TITLES[commandName] ?? `#${channelName} の24時間ですっ`;
 }
 
 function makeProgress(interaction) {

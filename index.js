@@ -1,10 +1,10 @@
 require("dotenv").config();
 const { Client, GatewayIntentBits, REST, Routes } = require("discord.js");
-const commands = require("./commands");
-const schedule = require("./schedule");
-const handlers = require("./handlers");
+const commands = require("./src/commands");
+const schedule = require("./src/schedule");
+const handlers = require("./src/handlers");
 
-const token = process.env.DISCORD_TOKEN;
+const token    = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
 
 const client = new Client({

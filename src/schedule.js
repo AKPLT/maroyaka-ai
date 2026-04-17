@@ -6,7 +6,8 @@ const prompts = require("./prompts");
 const { collectServerLogs } = require("./logs");
 const { generateAiSummary } = require("./ai");
 
-const scheduleConfigPath = path.join(__dirname, "scheduleConfig.json");
+const ROOT = path.join(__dirname, "..");
+const scheduleConfigPath = path.join(ROOT, "scheduleConfig.json");
 const scheduledTasks = new Map();
 
 let discordClient = null;
