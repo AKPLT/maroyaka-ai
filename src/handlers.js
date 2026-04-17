@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const prompts = require("./prompts");
 const { collectServerLogs, collectChannelLogs } = require("./logs");
-const { generateAiSummary } = require("./ai");
+const { generateAiSummary, modelNameCommon, modelNameHaiku } = require("./ai");
 const schedule = require("./schedule");
 
 const AI_COMMANDS = [
@@ -63,6 +63,8 @@ async function handleSlashCommand(interaction) {
 
     if (!logText) return interaction.deleteReply();
 
+    const modelName =
+      interaction.commandName === "haiku" ? modelNameHaiku : modelNameCommon;
     const validate = interaction.options.getBoolean("validate") ?? false;
     let promptConfig = prompts[interaction.commandName];
     if (["news", "summary"].includes(interaction.commandName)) {
@@ -75,6 +77,7 @@ async function handleSlashCommand(interaction) {
       logText,
       validate,
       progress,
+      modelName,
     );
 
     // replyContentを安全に切り詰める処理

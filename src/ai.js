@@ -4,8 +4,12 @@ const { Ollama } = require("ollama");
 const thinkingMessages = require("../data/thinkingMessages");
 
 const ROOT = path.join(__dirname, "..");
-const ollama = new Ollama({ host: `http://${process.env.OLLAMA_HOST_IP}:11434` });
-const modelName = process.env.OLLAMA_MODEL;
+const ollama = new Ollama({
+  host: `http://${process.env.OLLAMA_HOST_IP}:11434`,
+});
+const modelNameCommon = process.env.OLLAMA_MODEL;
+const modelNameHaiku = process.env.OLLAMA_HAIKU_MODEL;
+const modelNameValidation = process.env.OLLAMA_VALIDATION_MODEL;
 const logCharLimit = parseInt(process.env.LOG_CHAR_LIMIT ?? "16000", 10);
 const emojiPattern =
   /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
@@ -17,7 +21,8 @@ function sanitizeText(text) {
 function startThinkingInterval(onProgress, intervalMs = 4000) {
   if (!onProgress) return () => {};
   const tick = () => {
-    const msg = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
+    const msg =
+      thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
     onProgress(`まろやかAIが頑張っていますっ…！（${msg}）`);
   };
   tick();
@@ -25,10 +30,15 @@ function startThinkingInterval(onProgress, intervalMs = 4000) {
   return () => clearInterval(id);
 }
 
-async function validateOutput(output, promptConfig, ollamaTimeoutMs) {
+async function validateOutput(
+  output,
+  promptConfig,
+  ollamaTimeoutMs,
+  targetModel,
+) {
   const response = await ollama.chat(
     {
-      model: modelName,
+      model: targetModel,
       messages: [
         { role: "system", content: promptConfig.system },
         {
@@ -42,7 +52,13 @@ async function validateOutput(output, promptConfig, ollamaTimeoutMs) {
   return response.message.content.trim().toUpperCase().startsWith("YES");
 }
 
-async function generateAiSummary(promptConfig, logText, validate = false, onProgress = null) {
+async function generateAiSummary(
+  promptConfig,
+  logText,
+  validate = false,
+  onProgress = null,
+  targetModel = modelNameCommon,
+) {
   const truncatedLog = logText.substring(0, logCharLimit);
   fs.writeFileSync(
     path.join(ROOT, "last_prompt.log"),
@@ -56,7 +72,10 @@ async function generateAiSummary(promptConfig, logText, validate = false, onProg
     "utf8",
   );
 
-  const ollamaTimeoutMs = parseInt(process.env.OLLAMA_TIMEOUT_MS ?? "300000", 10);
+  const ollamaTimeoutMs = parseInt(
+    process.env.OLLAMA_TIMEOUT_MS ?? "300000",
+    10,
+  );
   const maxAttempts = validate ? 3 : 1;
   let lastOutput = null;
 
@@ -65,7 +84,7 @@ async function generateAiSummary(promptConfig, logText, validate = false, onProg
     try {
       const response = await ollama.chat(
         {
-          model: modelName,
+          model: targetModel,
           messages: [
             { role: "system", content: promptConfig.system },
             { role: "user", content: promptConfig.user(truncatedLog) },
@@ -82,7 +101,12 @@ async function generateAiSummary(promptConfig, logText, validate = false, onProg
 
     onProgress?.(`回答を検証中ですっ... (${attempt + 1}/${maxAttempts}回目)`);
     console.log(`バリデーション中... (${attempt + 1}/${maxAttempts}回目)`);
-    const isValid = await validateOutput(lastOutput, promptConfig, ollamaTimeoutMs);
+    const isValid = await validateOutput(
+      lastOutput,
+      promptConfig,
+      ollamaTimeoutMs,
+      validarionModelName,
+    );
     if (isValid) {
       console.log(`バリデーション成功 (${attempt + 1}回目)`);
       break;
@@ -98,4 +122,12 @@ async function generateAiSummary(promptConfig, logText, validate = false, onProg
   return lastOutput;
 }
 
-module.exports = { sanitizeText, startThinkingInterval, validateOutput, generateAiSummary };
+module.exports = {
+  sanitizeText,
+  startThinkingInterval,
+  validateOutput,
+  generateAiSummary,
+  modelNameCommon,
+  modelNameHaiku,
+  modelNameValidation,
+};
