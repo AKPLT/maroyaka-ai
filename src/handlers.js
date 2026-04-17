@@ -65,7 +65,7 @@ async function handleSlashCommand(interaction) {
 
     const modelName =
       interaction.commandName === "haiku" ? modelNameHaiku : modelNameCommon;
-    const validate = interaction.options.getBoolean("validate") ?? true;
+    const validate = interaction.options.getBoolean("validate") ?? false;
     let promptConfig = prompts[interaction.commandName];
     if (["news", "summary"].includes(interaction.commandName)) {
       const style = interaction.options.getString("style") ?? "maroyaka";
@@ -116,7 +116,7 @@ async function handleSuggestTopic(interaction) {
     const logText = await collectChannelLogs(interaction.channel, progress);
     if (!logText) return interaction.deleteReply();
 
-    const validate = interaction.options.getBoolean("validate") ?? true;
+    const validate = interaction.options.getBoolean("validate") ?? false;
     const suggestion = await generateAiSummary(
       prompts.topic,
       logText,
