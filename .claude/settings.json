@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://127.0.0.1:11434/api/tags)",
+      "Bash(python -c \"import sys,json; models=[m['name'] for m in json.load\\(sys.stdin\\)['models']]; print\\('\\\\n'.join\\(models\\)\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(node -e \"const m = require\\('./thinkingMessages'\\); console.log\\('件数:', m.length\\)\")",
+      "Bash(node -e \"require\\('./index.js'\\)\")"
+    ]
+  }
+}

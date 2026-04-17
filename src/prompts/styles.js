@@ -87,8 +87,20 @@ const rpgStyle = {
   user: logUser("上記の会話をRPG冒険譚風に語ってください。名前はログに書いてあるものだけ使うこと。"),
 };
 
+const summaryStyle = {
+  system: withBase(`あなたはDiscordサーバーの会話ログを簡潔に要約するアシスタントです。
+
+以下のルールを厳守してください：
+1. 今日の主な話題を3〜5件、箇条書きで簡潔にまとめること。
+2. 各項目は「・話題名：説明（1〜2文）」の形式で記述すること。
+3. 余計な演出・感情表現・キャラクター性は不要。事実を端的に伝えること。
+4. 登場人物の名前はログに記載されているものをそのまま使うこと。`),
+  user: logUser("上記のログの主な話題を箇条書きで簡潔にまとめてください。名前はログに書いてあるものだけ使うこと。"),
+};
+
 const STYLE_CHOICES = [
   { name: "まろやか（デフォルト）", value: "maroyaka"    },
+  { name: "要約",                   value: "summary_plain"},
   { name: "業務報告書風",           value: "report"      },
   { name: "昼ドラ風",               value: "drama"       },
   { name: "ニュースキャスター風",   value: "news_anchor" },
@@ -96,15 +108,17 @@ const STYLE_CHOICES = [
 ];
 
 const SUMMARY_STYLES = {
-  maroyaka:    maroyakaBase,
-  report:      reportStyle,
-  drama:       dramaStyle,
-  news_anchor: newsAnchorStyle,
-  rpg:         rpgStyle,
+  maroyaka:     maroyakaBase,
+  summary_plain:summaryStyle,
+  report:       reportStyle,
+  drama:        dramaStyle,
+  news_anchor:  newsAnchorStyle,
+  rpg:          rpgStyle,
 };
 
 module.exports = {
   maroyakaBase,
+  summaryStyle,
   reportStyle,
   dramaStyle,
   newsAnchorStyle,
