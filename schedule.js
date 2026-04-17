@@ -100,6 +100,14 @@ function setScheduleTime(guildId, hour, minute) {
   });
 }
 
+function getNewsStyle(guildId) {
+  return getGuildConfig(guildId).newsStyle ?? "maroyaka";
+}
+
+function setNewsStyle(guildId, style) {
+  return setGuildConfig(guildId, { newsStyle: style });
+}
+
 function getScheduleTimeString(guildId) {
   const { scheduleHour, scheduleMinute } = getScheduleTime(guildId);
   return `${String(scheduleHour).padStart(2, "0")}:${String(scheduleMinute).padStart(2, "0")}`;
@@ -188,7 +196,9 @@ async function postScheduledNews(channel) {
     if (!logText) return;
 
     console.log(`Ollama に送信中...`);
-    const summary = await generateAiSummary(prompts.news, logText);
+    const style = getNewsStyle(channel.guild.id);
+    const summaryPrompt = prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
+    const summary = await generateAiSummary(summaryPrompt, logText);
     const mvp = await generateAiSummary(prompts.mvp, logText);
     const haiku = await generateAiSummary(prompts.haiku, logText);
 
@@ -218,4 +228,6 @@ module.exports = {
   getScheduledChannelMention,
   getScheduleTimeString,
   setScheduleTime,
+  getNewsStyle,
+  setNewsStyle,
 };

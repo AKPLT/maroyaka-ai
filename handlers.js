@@ -48,7 +48,12 @@ async function handleSlashCommand(interaction) {
     if (!logText) return interaction.deleteReply();
 
     const validate = interaction.options.getBoolean("validate") ?? false;
-    const replyContent = await generateAiSummary(prompts[interaction.commandName], logText, validate, progress);
+    let promptConfig = prompts[interaction.commandName];
+    if (["news", "summary"].includes(interaction.commandName)) {
+      const style = interaction.options.getString("style") ?? "maroyaka";
+      promptConfig = prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
+    }
+    const replyContent = await generateAiSummary(promptConfig, logText, validate, progress);
 
     const embed = new EmbedBuilder()
       .setTitle(getEmbedTitle(interaction.commandName, interaction.channel.name))
@@ -106,8 +111,21 @@ async function handleSetNewsChannel(interaction) {
 }
 
 async function handleGetNewsChannel(interaction) {
+  const styleName = prompts.STYLE_CHOICES.find(
+    (c) => c.value === schedule.getNewsStyle(interaction.guildId),
+  )?.name ?? "まろやか（デフォルト）";
   return interaction.reply({
-    content: `現在の定期配信先は ${schedule.getScheduledChannelMention(interaction.guildId)}、配信時刻は ${schedule.getScheduleTimeString(interaction.guildId)} です。`,
+    content: `現在の定期配信先は ${schedule.getScheduledChannelMention(interaction.guildId)}、配信時刻は ${schedule.getScheduleTimeString(interaction.guildId)}、スタイルは「${styleName}」です。`,
+    ephemeral: true,
+  });
+}
+
+async function handleSetNewsStyle(interaction) {
+  const style = interaction.options.getString("style");
+  schedule.setNewsStyle(interaction.guildId, style);
+  const styleName = prompts.STYLE_CHOICES.find((c) => c.value === style)?.name ?? style;
+  return interaction.reply({
+    content: `定期配信のスタイルを「${styleName}」に設定しました。`,
     ephemeral: true,
   });
 }
@@ -136,4 +154,5 @@ module.exports = {
   handleSetNewsChannel,
   handleGetNewsChannel,
   handleSetNewsTime,
+  handleSetNewsStyle,
 };

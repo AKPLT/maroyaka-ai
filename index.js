@@ -49,6 +49,7 @@ client.on("interactionCreate", async (interaction) => {
 
   if (commandName === "setnewschannel") return handlers.handleSetNewsChannel(interaction);
   if (commandName === "setnewstime")    return handlers.handleSetNewsTime(interaction);
+  if (commandName === "setnewsstyle")   return handlers.handleSetNewsStyle(interaction);
   if (commandName === "getnewschannel") return handlers.handleGetNewsChannel(interaction);
   if (commandName === "suggesttopic")   return handlers.handleSuggestTopic(interaction);
   if (handlers.AI_COMMANDS.includes(commandName)) return handlers.handleSlashCommand(interaction);

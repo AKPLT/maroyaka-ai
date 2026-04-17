@@ -1,10 +1,11 @@
 const { SlashCommandBuilder } = require("discord.js");
+const { STYLE_CHOICES } = require("./prompts");
 
 function boolOption(name, description) {
   return (option) => option.setName(name).setDescription(description);
 }
 
-const privateOpt = boolOption("private", "自分にだけ見えるメッセージで返します");
+const privateOpt  = boolOption("private",  "自分にだけ見えるメッセージで返します");
 const validateOpt = boolOption("validate", "出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）");
 
 function aiCommand(name, description) {
@@ -15,9 +16,20 @@ function aiCommand(name, description) {
     .addBooleanOption(validateOpt);
 }
 
+function aiCommandWithStyle(name, description) {
+  return new SlashCommandBuilder()
+    .setName(name)
+    .setDescription(description)
+    .addStringOption((option) =>
+      option.setName("style").setDescription("要約のスタイル").addChoices(...STYLE_CHOICES),
+    )
+    .addBooleanOption(privateOpt)
+    .addBooleanOption(validateOpt);
+}
+
 const commands = [
-  aiCommand("news",        "サーバー全体の24時間をまろやかに要約します"),
-  aiCommand("summary",     "チャンネルの24時間をまろやかに要約します"),
+  aiCommandWithStyle("news",    "サーバー全体の24時間をまろやかに要約します"),
+  aiCommandWithStyle("summary", "チャンネルの24時間をまろやかに要約します"),
   aiCommand("haiku",       "サーバー全体の24時間の出来事を五・七・五で詠みます"),
   aiCommand("story",       "チャンネルの24時間の会話をもとに短編小説を書きます"),
   aiCommand("question",    "チャンネルの会話をもとに、みんなへの質問を1つ投げかけます"),
@@ -46,6 +58,12 @@ const commands = [
   new SlashCommandBuilder()
     .setName("getnewschannel")
     .setDescription("現在の定期配信先チャンネルと時刻を表示します"),
+  new SlashCommandBuilder()
+    .setName("setnewsstyle")
+    .setDescription("定期配信の要約スタイルを設定します")
+    .addStringOption((option) =>
+      option.setName("style").setDescription("要約のスタイル").setRequired(true).addChoices(...STYLE_CHOICES),
+    ),
 ].map((command) => command.toJSON());
 
 module.exports = commands;
