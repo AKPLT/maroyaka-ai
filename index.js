@@ -450,7 +450,7 @@ async function postScheduledNews(channel) {
 
     const haiku = await createHaikuSummary(result.logText);
     const embed = new EmbedBuilder()
-      .setTitle("今日のまろやかニュース")
+      .setTitle("24時間のニュースですっ")
       .setDescription(result.summary)
       .addFields({ name: "最後に一句…", value: haiku ?? "(俳句の生成に失敗しました)" })
       .setColor(0xf5c2e7)
@@ -463,9 +463,9 @@ async function postScheduledNews(channel) {
 }
 
 function getEmbedTitle(commandName, channelName) {
-  if (commandName === "haiku") return "今日の一句";
-  if (commandName === "news") return "サーバー全体のまとめ";
-  return `#${channelName} のまとめ`;
+  if (commandName === "haiku") return "今日の一句ですっ";
+  if (commandName === "news") return "24時間のニュースですっ";
+  return `#${channelName} の24時間ですっ`;
 }
 
 async function handleSlashCommand(interaction) {
@@ -583,7 +583,7 @@ async function handleSuggestTopic(interaction) {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle("次の話題はこちら")
+      .setTitle("次の話題はこちらですっ")
       .setDescription(suggestion)
       .setColor(0xf5c2e7)
       .setTimestamp();
