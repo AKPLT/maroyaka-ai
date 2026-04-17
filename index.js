@@ -231,6 +231,7 @@ const scheduleConfigPath = path.join(__dirname, "scheduleConfig.json");
 let scheduleConfig = loadScheduleConfig();
 const scheduledTasks = new Map();
 let isClientReady = false;
+let isProcessing = false;
 const summaryWindowMs = 24 * 60 * 60 * 1000;
 const logCharLimit = parseInt(process.env.LOG_CHAR_LIMIT ?? "16000", 10);
 const emojiPattern =
@@ -571,8 +572,13 @@ function getEmbedTitle(commandName, channelName) {
 }
 
 async function handleSlashCommand(interaction) {
+  if (isProcessing) {
+    return interaction.reply({ content: "今ほかのコマンドを処理中ですっ！もう少しだけ待ってくださいねっ", ephemeral: true });
+  }
+
   const ephemeral = interaction.options.getBoolean("private") ?? false;
   await interaction.deferReply({ ephemeral });
+  isProcessing = true;
 
   try {
     let logText = "";
@@ -605,6 +611,8 @@ async function handleSlashCommand(interaction) {
   } catch (error) {
     console.error("Error:", error);
     await interaction.deleteReply();
+  } finally {
+    isProcessing = false;
   }
 }
 
@@ -667,11 +675,17 @@ async function handleSetNewsTime(interaction) {
 }
 
 async function handleSuggestTopic(interaction) {
+  if (isProcessing) {
+    return interaction.reply({ content: "今ほかのコマンドを処理中ですっ！もう少しだけ待ってくださいねっ", ephemeral: true });
+  }
+
   const ephemeral = interaction.options.getBoolean("private") ?? false;
   await interaction.deferReply({ ephemeral });
+  isProcessing = true;
 
   const logText = await collectChannelLogs(interaction.channel);
   if (!logText) {
+    isProcessing = false;
     return interaction.deleteReply();
   }
 
@@ -692,6 +706,8 @@ async function handleSuggestTopic(interaction) {
   } catch (error) {
     console.error("Topic suggestion error:", error);
     return interaction.deleteReply();
+  } finally {
+    isProcessing = false;
   }
 }
 
