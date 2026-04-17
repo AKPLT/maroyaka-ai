@@ -533,7 +533,7 @@ function getEmbedTitle(commandName, channelName) {
   if (commandName === "haiku") return "今日の一句ですっ";
   if (commandName === "news") return "24時間のニュースですっ";
   if (commandName === "story") return "今日の物語ですっ";
-  if (commandName === "question") return "みんなへの質問ですっ";
+  if (commandName === "question") return "ちょっといい？";
   return `#${channelName} の24時間ですっ`;
 }
 
