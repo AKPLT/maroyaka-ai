@@ -34,31 +34,41 @@ const commands = [
     .setName("news")
     .setDescription("サーバー全体の24時間をまろやかに要約します")
     .addBooleanOption((option) =>
-      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+      option
+        .setName("private")
+        .setDescription("自分にだけ見えるメッセージで返します"),
     ),
   new SlashCommandBuilder()
     .setName("summary")
     .setDescription("チャンネルの24時間をまろやかに要約します")
     .addBooleanOption((option) =>
-      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+      option
+        .setName("private")
+        .setDescription("自分にだけ見えるメッセージで返します"),
     ),
   new SlashCommandBuilder()
     .setName("haiku")
     .setDescription("サーバー全体の24時間の出来事を五・七・五で詠みます")
     .addBooleanOption((option) =>
-      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+      option
+        .setName("private")
+        .setDescription("自分にだけ見えるメッセージで返します"),
     ),
   new SlashCommandBuilder()
     .setName("story")
     .setDescription("チャンネルの24時間の会話をもとに短編小説を書きます")
     .addBooleanOption((option) =>
-      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+      option
+        .setName("private")
+        .setDescription("自分にだけ見えるメッセージで返します"),
     ),
   new SlashCommandBuilder()
     .setName("suggesttopic")
     .setDescription("過去の会話をもとに、次の話題を提案します")
     .addBooleanOption((option) =>
-      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+      option
+        .setName("private")
+        .setDescription("自分にだけ見えるメッセージで返します"),
     ),
   new SlashCommandBuilder()
     .setName("setnewschannel")
@@ -184,7 +194,11 @@ async function fetchAndCleanLogs(channel, cutoff) {
         .replace(/<a?:\w+:\d+>/g, "")
         .trim();
 
-      const time = new Date(m.createdTimestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", hour12: false });
+      const time = new Date(m.createdTimestamp).toLocaleTimeString("ja-JP", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
       return text ? `[#${channel.name}][${time}] ${authorName}: ${text}` : null;
     })
     .filter((log) => log !== null);
@@ -438,14 +452,20 @@ async function generateAiSummary(promptConfig, logText) {
   ].join("\n");
   fs.writeFileSync(logFilePath, logFileContent, "utf8");
 
-  const ollamaTimeoutMs = parseInt(process.env.OLLAMA_TIMEOUT_MS ?? "300000", 10);
-  const response = await ollama.chat({
-    model: modelName,
-    messages: [
-      { role: "system", content: promptConfig.system },
-      { role: "user", content: promptConfig.user(truncatedLog) },
-    ],
-  }, { signal: AbortSignal.timeout(ollamaTimeoutMs) });
+  const ollamaTimeoutMs = parseInt(
+    process.env.OLLAMA_TIMEOUT_MS ?? "300000",
+    10,
+  );
+  const response = await ollama.chat(
+    {
+      model: modelName,
+      messages: [
+        { role: "system", content: promptConfig.system },
+        { role: "user", content: promptConfig.user(truncatedLog) },
+      ],
+    },
+    { signal: AbortSignal.timeout(ollamaTimeoutMs) },
+  );
 
   return sanitizeText(response.message.content);
 }
@@ -474,22 +494,21 @@ async function postScheduledNews(channel) {
 
   try {
     const result = await createNewsSummary(channel.guild);
-    if (!result) {
-      await channel.send("過去24時間に新しい投稿は見つかりませんでしたっ");
-      return;
-    }
+    if (!result) return;
 
     const haiku = await createHaikuSummary(result.logText);
     const embed = new EmbedBuilder()
       .setTitle("24時間のニュースですっ")
       .setDescription(result.summary)
-      .addFields({ name: "最後に一句…", value: haiku ?? "(俳句の生成に失敗しました)" })
+      .addFields({
+        name: "最後に一句…",
+        value: haiku ?? "(俳句の生成に失敗しました)",
+      })
       .setColor(0xf5c2e7)
       .setTimestamp();
     await channel.send({ embeds: [embed] });
   } catch (error) {
     console.error("Scheduled news error:", error);
-    await channel.send("[定期実行] 定期配信中にエラーが発生しました。");
   }
 }
 
@@ -514,16 +533,17 @@ async function handleSlashCommand(interaction) {
     }
 
     if (!logText) {
-      return interaction.editReply(
-        "過去24時間に新しい投稿は見つかりませんでしたっ",
-      );
+      return interaction.deleteReply();
     }
 
     console.log(`Ollama (${modelName}) に送信中...`);
     const promptConfig = prompts[interaction.commandName];
     const replyContent = await generateAiSummary(promptConfig, logText);
 
-    const title = getEmbedTitle(interaction.commandName, interaction.channel.name);
+    const title = getEmbedTitle(
+      interaction.commandName,
+      interaction.channel.name,
+    );
     const embed = new EmbedBuilder()
       .setTitle(title)
       .setDescription(replyContent)
@@ -532,9 +552,7 @@ async function handleSlashCommand(interaction) {
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error("Error:", error);
-    await interaction.editReply(
-      "ごめんなさい、処理中にエラーが起きちゃいました。",
-    );
+    await interaction.deleteReply();
   }
 }
 
@@ -602,18 +620,14 @@ async function handleSuggestTopic(interaction) {
 
   const logText = await collectChannelLogs(interaction.channel);
   if (!logText) {
-    return interaction.editReply(
-      "このチャンネルの過去24時間の会話が見つかりませんでした。もう少し会話が増えてから再度試してください。",
-    );
+    return interaction.deleteReply();
   }
 
   console.log("話題提案を生成中...");
   try {
     const suggestion = await createTopicSuggestion(logText);
     if (!suggestion) {
-      return interaction.editReply(
-        "話題の提案に失敗しました。もう一度お試しください。",
-      );
+      return interaction.deleteReply();
     }
 
     const embed = new EmbedBuilder()
@@ -624,9 +638,7 @@ async function handleSuggestTopic(interaction) {
     return interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error("Topic suggestion error:", error);
-    return interaction.editReply(
-      "申し訳ありません、話題提案の生成中にエラーが発生しました。",
-    );
+    return interaction.deleteReply();
   }
 }
 
