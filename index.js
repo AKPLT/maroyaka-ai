@@ -181,9 +181,8 @@ async function fetchAndCleanLogs(channel, cutoff) {
         !m.author.bot && !m.content.startsWith("/") && m.content.trim() !== "",
     )
     .map((m) => {
-      // サーバーを抜けたユーザーなどの場合、memberがnullになることがあるので「|| m.author.username」を付けておくと安全です
       const authorName =
-        m.member?.displayName || m.author.displayName || m.author.username;
+        m.member?.nickname ?? m.member?.displayName ?? m.author.username;
 
       let text = m.content
         .replace(/https?:\/\/[\w/:%#\$&\?\(\)~\.=\+\-]+/g, "")
