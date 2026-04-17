@@ -5,25 +5,35 @@ const { generateAiSummary } = require("./ai");
 const schedule = require("./schedule");
 
 const AI_COMMANDS = [
-  "news", "summary", "haiku", "story", "question",
-  "mvp", "fortune", "title", "wanted", "drama", "report",
+  "news",
+  "summary",
+  "haiku",
+  "story",
+  "question",
+  "mvp",
+  "fortune",
+  "title",
+  "wanted",
+  "drama",
+  "report",
 ];
 
 let isProcessing = false;
 
-const BUSY_MESSAGE = "今ほかのコマンドを処理中ですっ！もう少しだけ待ってくださいねっ";
+const BUSY_MESSAGE =
+  "今ほかのコマンドを処理中ですっ！もう少しだけ待ってくださいねっ";
 
 const EMBED_TITLES = {
-  haiku:   "今日の一句ですっ",
-  news:    "24時間のニュースですっ",
-  story:   "今日の物語ですっ",
-  question:"ちょっといい？",
-  mvp:     "今日のMVPですっ",
+  haiku: "今日の一句ですっ",
+  news: "24時間のニュースですっ",
+  story: "今日の物語ですっ",
+  question: "ちょっといい？",
+  mvp: "今日のMVPですっ",
   fortune: "今日のおみくじですっ",
-  title:   "今日の称号ですっ",
-  wanted:  "🚨 本日の指名手配 🚨",
-  drama:   "今日の昼ドラですっ",
-  report:  "本日の業務報告ですっ",
+  title: "今日の称号ですっ",
+  wanted: "🚨 本日の指名手配 🚨",
+  drama: "今日の昼ドラですっ",
+  report: "本日の業務報告ですっ",
 };
 
 function getEmbedTitle(commandName, channelName) {
@@ -31,7 +41,8 @@ function getEmbedTitle(commandName, channelName) {
 }
 
 function makeProgress(interaction) {
-  return (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
+  return (msg) =>
+    interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
 }
 
 async function handleSlashCommand(interaction) {
@@ -45,9 +56,10 @@ async function handleSlashCommand(interaction) {
   const progress = makeProgress(interaction);
 
   try {
-    const logText = interaction.commandName === "news"
-      ? await collectServerLogs(interaction.guild, progress)
-      : await collectChannelLogs(interaction.channel, progress);
+    const logText =
+      interaction.commandName === "news"
+        ? await collectServerLogs(interaction.guild, progress)
+        : await collectChannelLogs(interaction.channel, progress);
 
     if (!logText) return interaction.deleteReply();
 
@@ -55,13 +67,27 @@ async function handleSlashCommand(interaction) {
     let promptConfig = prompts[interaction.commandName];
     if (["news", "summary"].includes(interaction.commandName)) {
       const style = interaction.options.getString("style") ?? "maroyaka";
-      promptConfig = prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
+      promptConfig =
+        prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
     }
-    const replyContent = await generateAiSummary(promptConfig, logText, validate, progress);
+    const replyContent = await generateAiSummary(
+      promptConfig,
+      logText,
+      validate,
+      progress,
+    );
+
+    // replyContentを安全に切り詰める処理
+    const safeContent =
+      replyContent.length > 4096
+        ? replyContent.substring(0, 4093) + "..."
+        : replyContent;
 
     const embed = new EmbedBuilder()
-      .setTitle(getEmbedTitle(interaction.commandName, interaction.channel.name))
-      .setDescription(replyContent)
+      .setTitle(
+        getEmbedTitle(interaction.commandName, interaction.channel.name),
+      )
+      .setDescription(safeContent) // 安全な文字列を渡す
       .setColor(0xf5c2e7)
       .setTimestamp();
     await interaction.editReply({ content: "", embeds: [embed] });
@@ -88,7 +114,12 @@ async function handleSuggestTopic(interaction) {
     if (!logText) return interaction.deleteReply();
 
     const validate = interaction.options.getBoolean("validate") ?? false;
-    const suggestion = await generateAiSummary(prompts.topic, logText, validate, progress);
+    const suggestion = await generateAiSummary(
+      prompts.topic,
+      logText,
+      validate,
+      progress,
+    );
     if (!suggestion) return interaction.deleteReply();
 
     const embed = new EmbedBuilder()
@@ -108,16 +139,23 @@ async function handleSuggestTopic(interaction) {
 async function handleSetNewsChannel(interaction) {
   const channel = interaction.options.getChannel("channel");
   if (!channel || !channel.isTextBased() || channel.isThread()) {
-    return interaction.reply({ content: "有効なテキストチャンネルを指定してください。", ephemeral: true });
+    return interaction.reply({
+      content: "有効なテキストチャンネルを指定してください。",
+      ephemeral: true,
+    });
   }
   schedule.setScheduledChannelId(interaction.guildId, channel.id);
-  return interaction.reply({ content: `定期配信先を ${channel} に設定しました。`, ephemeral: true });
+  return interaction.reply({
+    content: `定期配信先を ${channel} に設定しました。`,
+    ephemeral: true,
+  });
 }
 
 async function handleGetNewsChannel(interaction) {
-  const styleName = prompts.STYLE_CHOICES.find(
-    (c) => c.value === schedule.getNewsStyle(interaction.guildId),
-  )?.name ?? "まろやか（デフォルト）";
+  const styleName =
+    prompts.STYLE_CHOICES.find(
+      (c) => c.value === schedule.getNewsStyle(interaction.guildId),
+    )?.name ?? "まろやか（デフォルト）";
   return interaction.reply({
     content: `現在の定期配信先は ${schedule.getScheduledChannelMention(interaction.guildId)}、配信時刻は ${schedule.getScheduleTimeString(interaction.guildId)}、スタイルは「${styleName}」です。`,
     ephemeral: true,
@@ -127,7 +165,8 @@ async function handleGetNewsChannel(interaction) {
 async function handleSetNewsStyle(interaction) {
   const style = interaction.options.getString("style");
   schedule.setNewsStyle(interaction.guildId, style);
-  const styleName = prompts.STYLE_CHOICES.find((c) => c.value === style)?.name ?? style;
+  const styleName =
+    prompts.STYLE_CHOICES.find((c) => c.value === style)?.name ?? style;
   return interaction.reply({
     content: `定期配信のスタイルを「${styleName}」に設定しました。`,
     ephemeral: true,
@@ -139,16 +178,24 @@ async function handleSetNewsTime(interaction) {
   const minute = interaction.options.getInteger("minute");
 
   if (hour === null || minute === null) {
-    return interaction.reply({ content: "有効な時刻を指定してください。", ephemeral: true });
+    return interaction.reply({
+      content: "有効な時刻を指定してください。",
+      ephemeral: true,
+    });
   }
 
   schedule.setScheduleTime(interaction.guildId, hour, minute);
 
   const timeStr = schedule.getScheduleTimeString(interaction.guildId);
   const channelId = schedule.getScheduledChannelId(interaction.guildId);
-  const notice = channelId ? "" : "\nまだ配信先が設定されていないため、定期配信は実行されません。";
+  const notice = channelId
+    ? ""
+    : "\nまだ配信先が設定されていないため、定期配信は実行されません。";
 
-  return interaction.reply({ content: `定期配信時刻を ${timeStr} に設定しました。${notice}`, ephemeral: true });
+  return interaction.reply({
+    content: `定期配信時刻を ${timeStr} に設定しました。${notice}`,
+    ephemeral: true,
+  });
 }
 
 module.exports = {
