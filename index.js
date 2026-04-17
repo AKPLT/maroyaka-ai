@@ -573,9 +573,7 @@ async function handleSuggestTopic(interaction) {
       );
     }
 
-    return interaction.editReply(
-      `過去の会話をもとに、次の話題としておすすめしたいのは次のとおりです：\n\n${suggestion}`,
-    );
+    return interaction.editReply(suggestion);
   } catch (error) {
     console.error("Topic suggestion error:", error);
     return interaction.editReply(
