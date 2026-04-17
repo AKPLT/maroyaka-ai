@@ -63,6 +63,14 @@ const commands = [
         .setDescription("自分にだけ見えるメッセージで返します"),
     ),
   new SlashCommandBuilder()
+    .setName("question")
+    .setDescription("チャンネルの会話をもとに、みんなへの質問を1つ投げかけます")
+    .addBooleanOption((option) =>
+      option
+        .setName("private")
+        .setDescription("自分にだけ見えるメッセージで返します"),
+    ),
+  new SlashCommandBuilder()
     .setName("suggesttopic")
     .setDescription("過去の会話をもとに、次の話題を提案します")
     .addBooleanOption((option) =>
@@ -515,6 +523,7 @@ function getEmbedTitle(commandName, channelName) {
   if (commandName === "haiku") return "今日の一句ですっ";
   if (commandName === "news") return "24時間のニュースですっ";
   if (commandName === "story") return "今日の物語ですっ";
+  if (commandName === "question") return "みんなへの質問ですっ";
   return `#${channelName} の24時間ですっ`;
 }
 
@@ -665,7 +674,7 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  if (["news", "summary", "haiku", "story"].includes(commandName)) {
+  if (["news", "summary", "haiku", "story", "question"].includes(commandName)) {
     await handleSlashCommand(interaction);
   }
 });
