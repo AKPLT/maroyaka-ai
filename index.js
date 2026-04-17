@@ -178,7 +178,8 @@ async function fetchAndCleanLogs(channel, cutoff) {
         .replace(/<a?:\w+:\d+>/g, "")
         .trim();
 
-      return text ? `[#${channel.name}] ${authorName}: ${text}` : null;
+      const time = new Date(m.createdTimestamp).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", hour12: false });
+      return text ? `[#${channel.name}][${time}] ${authorName}: ${text}` : null;
     })
     .filter((log) => log !== null);
 }
