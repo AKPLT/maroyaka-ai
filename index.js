@@ -183,14 +183,24 @@ async function fetchAndCleanLogs(channel, cutoff) {
     console.error(`[#${channel.name}] 取得エラー: ${err.message}`);
   }
 
-  return channelAllMessages
-    .filter(
-      (m) =>
-        !m.author.bot && !m.content.startsWith("/") && m.content.trim() !== "",
-    )
+  const validMessages = channelAllMessages.filter(
+    (m) => !m.author.bot && !m.content.startsWith("/") && m.content.trim() !== "",
+  );
+
+  const uniqueUserIds = [...new Set(validMessages.map((m) => m.author.id))];
+  const memberMap = new Map();
+  try {
+    const members = await channel.guild.members.fetch({ user: uniqueUserIds });
+    members.forEach((member) => memberMap.set(member.id, member));
+  } catch {
+    // フェッチ失敗時はメッセージ付属のmemberにフォールバック
+  }
+
+  return validMessages
     .map((m) => {
+      const member = memberMap.get(m.author.id) ?? m.member;
       const authorName =
-        m.member?.nickname ?? m.member?.displayName ?? m.author.username;
+        member?.nickname ?? member?.displayName ?? m.author.username;
 
       let text = m.content
         .replace(/https?:\/\/[\w/:%#\$&\?\(\)~\.=\+\-]+/g, "")
