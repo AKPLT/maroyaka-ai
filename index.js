@@ -5,6 +5,7 @@ const {
   REST,
   Routes,
   SlashCommandBuilder,
+  EmbedBuilder,
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -447,18 +448,23 @@ async function postScheduledNews(channel) {
     }
 
     const haiku = await createHaikuSummary(result.logText);
-    const reply = `[定期実行] サーバー全体をまとめましたっ\n\n${result.summary}\n\n最後に一句…\n${haiku ?? "(俳句の生成に失敗しました)"}`;
-    await channel.send(reply);
+    const embed = new EmbedBuilder()
+      .setTitle("今日のまろやかニュース")
+      .setDescription(result.summary)
+      .addFields({ name: "最後に一句…", value: haiku ?? "(俳句の生成に失敗しました)" })
+      .setColor(0xf5c2e7)
+      .setTimestamp();
+    await channel.send({ embeds: [embed] });
   } catch (error) {
     console.error("Scheduled news error:", error);
     await channel.send("[定期実行] 定期配信中にエラーが発生しました。");
   }
 }
 
-function getLogTitle(commandName, channelName) {
+function getEmbedTitle(commandName, channelName) {
   if (commandName === "haiku") return "今日の一句";
-  if (commandName === "news") return "サーバー全体";
-  return `#${channelName}`;
+  if (commandName === "news") return "サーバー全体のまとめ";
+  return `#${channelName} のまとめ`;
 }
 
 async function handleSlashCommand(interaction) {
@@ -483,11 +489,13 @@ async function handleSlashCommand(interaction) {
     const promptConfig = prompts[interaction.commandName];
     const replyContent = await generateAiSummary(promptConfig, logText);
 
-    const title = getLogTitle(
-      interaction.commandName,
-      interaction.channel.name,
-    );
-    await interaction.editReply(`${title}をまとめましたっ\n\n${replyContent}`);
+    const title = getEmbedTitle(interaction.commandName, interaction.channel.name);
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setDescription(replyContent)
+      .setColor(0xf5c2e7)
+      .setTimestamp();
+    await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error("Error:", error);
     await interaction.editReply(
@@ -573,7 +581,12 @@ async function handleSuggestTopic(interaction) {
       );
     }
 
-    return interaction.editReply(suggestion);
+    const embed = new EmbedBuilder()
+      .setTitle("次の話題はこちら")
+      .setDescription(suggestion)
+      .setColor(0xf5c2e7)
+      .setTimestamp();
+    return interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error("Topic suggestion error:", error);
     return interaction.editReply(
