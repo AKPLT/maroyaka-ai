@@ -495,7 +495,7 @@ async function generateAiSummary(promptConfig, logText, validate = false, onProg
   let lastOutput = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    onProgress?.(validate ? `AIに送信中ですっ... (${attempt + 1}/${maxAttempts}回目)` : "AIに送信中ですっ...");
+    onProgress?.(validate ? `まろやかAIが頑張って考えていますっ... (${attempt + 1}/${maxAttempts}回目)` : "まろやかAIが頑張って考えていますっ...");
     const response = await ollama.chat(
       {
         model: modelName,
