@@ -113,6 +113,15 @@ const commands = [
       option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
     ),
   new SlashCommandBuilder()
+    .setName("drama")
+    .setDescription("今日の会話を昼ドラ風のあらすじにします")
+    .addBooleanOption((option) =>
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
+    ),
+  new SlashCommandBuilder()
     .setName("wanted")
     .setDescription("今日一番やらかしたメンバーの指名手配書を作成します")
     .addBooleanOption((option) =>
@@ -637,6 +646,7 @@ function getEmbedTitle(commandName, channelName) {
   if (commandName === "mvp") return "今日のMVPですっ";
   if (commandName === "fortune") return "今日のおみくじですっ";
   if (commandName === "title") return "今日の称号ですっ";
+  if (commandName === "drama") return "今日の昼ドラですっ";
   if (commandName === "wanted") return "🚨 本日の指名手配 🚨";
   return `#${channelName} の24時間ですっ`;
 }
@@ -806,7 +816,7 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  if (["news", "summary", "haiku", "story", "question", "mvp", "fortune", "title", "wanted"].includes(commandName)) {
+  if (["news", "summary", "haiku", "story", "question", "mvp", "fortune", "title", "wanted", "drama"].includes(commandName)) {
     await handleSlashCommand(interaction);
   }
 });
