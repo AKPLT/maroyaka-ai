@@ -86,15 +86,6 @@ const commands = [
       option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
     ),
   new SlashCommandBuilder()
-    .setName("poll")
-    .setDescription("会話から投票を自動生成します")
-    .addBooleanOption((option) =>
-      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
-    )
-    .addBooleanOption((option) =>
-      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
-    ),
-  new SlashCommandBuilder()
     .setName("mvp")
     .setDescription("今日一番面白かった発言を選びます")
     .addBooleanOption((option) =>
@@ -781,56 +772,6 @@ async function handleSuggestTopic(interaction) {
   }
 }
 
-const pollEmojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"];
-
-async function handlePollCommand(interaction) {
-  if (isProcessing) {
-    return interaction.reply({ content: "今ほかのコマンドを処理中ですっ！もう少しだけ待ってくださいねっ", ephemeral: true });
-  }
-
-  const ephemeral = interaction.options.getBoolean("private") ?? false;
-  await interaction.deferReply({ ephemeral });
-  isProcessing = true;
-  const progress = (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
-
-  try {
-    const logText = await collectChannelLogs(interaction.channel, progress);
-    if (!logText) {
-      return interaction.deleteReply();
-    }
-
-    const validate = interaction.options.getBoolean("validate") ?? false;
-    const replyContent = await generateAiSummary(prompts.poll, logText, validate, progress);
-    if (!replyContent) {
-      return interaction.deleteReply();
-    }
-
-    const lines = replyContent.split("\n").map((l) => l.trim()).filter((l) => l);
-    const question = lines[0] ?? "みんなに聞いてみますっ";
-    const options = lines.slice(1, 5);
-
-    const description = options.map((opt, i) => `${pollEmojis[i]} ${opt}`).join("\n");
-    const embed = new EmbedBuilder()
-      .setTitle("みんなに投票してもらいますっ")
-      .setDescription(`**${question}**\n\n${description}`)
-      .setColor(0xf5c2e7)
-      .setTimestamp();
-
-    await interaction.editReply({ content: "", embeds: [embed] });
-
-    const msg = await interaction.fetchReply();
-    for (let i = 0; i < options.length; i++) {
-      await msg.react(pollEmojis[i]).catch(() => {});
-      await new Promise((r) => setTimeout(r, 300));
-    }
-  } catch (error) {
-    console.error("Poll error:", error);
-    await interaction.deleteReply().catch(() => {});
-  } finally {
-    isProcessing = false;
-  }
-}
-
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -852,11 +793,6 @@ client.on("interactionCreate", async (interaction) => {
 
   if (commandName === "suggesttopic") {
     await handleSuggestTopic(interaction);
-    return;
-  }
-
-  if (commandName === "poll") {
-    await handlePollCommand(interaction);
     return;
   }
 
