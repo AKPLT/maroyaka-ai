@@ -420,11 +420,22 @@ async function collectChannelLogs(channel) {
 }
 
 async function generateAiSummary(promptConfig, logText) {
+  const truncatedLog = logText.substring(0, logCharLimit);
+  const logFilePath = path.join(__dirname, "last_prompt.log");
+  const logFileContent = [
+    `=== ${new Date().toISOString()} ===`,
+    `--- SYSTEM ---`,
+    promptConfig.system,
+    `--- USER ---`,
+    promptConfig.user(truncatedLog),
+  ].join("\n");
+  fs.writeFileSync(logFilePath, logFileContent, "utf8");
+
   const response = await ollama.chat({
     model: modelName,
     messages: [
       { role: "system", content: promptConfig.system },
-      { role: "user", content: promptConfig.user(logText.substring(0, logCharLimit)) },
+      { role: "user", content: promptConfig.user(truncatedLog) },
     ],
   });
 
