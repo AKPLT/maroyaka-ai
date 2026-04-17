@@ -86,6 +86,42 @@ const commands = [
       option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
     ),
   new SlashCommandBuilder()
+    .setName("poll")
+    .setDescription("会話から投票を自動生成します")
+    .addBooleanOption((option) =>
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
+    ),
+  new SlashCommandBuilder()
+    .setName("mvp")
+    .setDescription("今日一番面白かった発言を選びます")
+    .addBooleanOption((option) =>
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
+    ),
+  new SlashCommandBuilder()
+    .setName("fortune")
+    .setDescription("今日の会話の雰囲気でサーバーのおみくじを引きます")
+    .addBooleanOption((option) =>
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
+    ),
+  new SlashCommandBuilder()
+    .setName("title")
+    .setDescription("今日活躍したメンバーに称号を授けます")
+    .addBooleanOption((option) =>
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    )
+    .addBooleanOption((option) =>
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
+    ),
+  new SlashCommandBuilder()
     .setName("setnewschannel")
     .setDescription("定期配信先チャンネルを設定します")
     .addChannelOption((option) =>
@@ -475,7 +511,7 @@ function startThinkingInterval(onProgress, intervalMs = 4000) {
   if (!onProgress) return () => {};
   const tick = () => {
     const msg = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
-    onProgress(`まろやかAIが頑張っていますっ\n（${msg}）`);
+    onProgress(`まろやかAIが頑張っていますっ…！（${msg}）`);
   };
   tick();
   const id = setInterval(tick, intervalMs);
@@ -576,14 +612,15 @@ async function postScheduledNews(channel) {
     const result = await createNewsSummary(channel.guild);
     if (!result) return;
 
+    const mvp = await generateAiSummary(prompts.mvp, result.logText);
     const haiku = await createHaikuSummary(result.logText);
     const embed = new EmbedBuilder()
       .setTitle("24時間のニュースですっ")
       .setDescription(result.summary)
-      .addFields({
-        name: "最後に一句…",
-        value: haiku ?? "(俳句の生成に失敗しました)",
-      })
+      .addFields(
+        { name: "今日のMVP発言…", value: mvp ?? "(MVP の生成に失敗しました)" },
+        { name: "最後に一句…", value: haiku ?? "(俳句の生成に失敗しました)" },
+      )
       .setColor(0xf5c2e7)
       .setTimestamp();
     await channel.send({ embeds: [embed] });
@@ -597,6 +634,9 @@ function getEmbedTitle(commandName, channelName) {
   if (commandName === "news") return "24時間のニュースですっ";
   if (commandName === "story") return "今日の物語ですっ";
   if (commandName === "question") return "ちょっといい？";
+  if (commandName === "mvp") return "今日のMVPですっ";
+  if (commandName === "fortune") return "今日のおみくじですっ";
+  if (commandName === "title") return "今日の称号ですっ";
   return `#${channelName} の24時間ですっ`;
 }
 
@@ -741,6 +781,56 @@ async function handleSuggestTopic(interaction) {
   }
 }
 
+const pollEmojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"];
+
+async function handlePollCommand(interaction) {
+  if (isProcessing) {
+    return interaction.reply({ content: "今ほかのコマンドを処理中ですっ！もう少しだけ待ってくださいねっ", ephemeral: true });
+  }
+
+  const ephemeral = interaction.options.getBoolean("private") ?? false;
+  await interaction.deferReply({ ephemeral });
+  isProcessing = true;
+  const progress = (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
+
+  try {
+    const logText = await collectChannelLogs(interaction.channel, progress);
+    if (!logText) {
+      return interaction.deleteReply();
+    }
+
+    const validate = interaction.options.getBoolean("validate") ?? false;
+    const replyContent = await generateAiSummary(prompts.poll, logText, validate, progress);
+    if (!replyContent) {
+      return interaction.deleteReply();
+    }
+
+    const lines = replyContent.split("\n").map((l) => l.trim()).filter((l) => l);
+    const question = lines[0] ?? "みんなに聞いてみますっ";
+    const options = lines.slice(1, 5);
+
+    const description = options.map((opt, i) => `${pollEmojis[i]} ${opt}`).join("\n");
+    const embed = new EmbedBuilder()
+      .setTitle("みんなに投票してもらいますっ")
+      .setDescription(`**${question}**\n\n${description}`)
+      .setColor(0xf5c2e7)
+      .setTimestamp();
+
+    await interaction.editReply({ content: "", embeds: [embed] });
+
+    const msg = await interaction.fetchReply();
+    for (let i = 0; i < options.length; i++) {
+      await msg.react(pollEmojis[i]).catch(() => {});
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  } catch (error) {
+    console.error("Poll error:", error);
+    await interaction.deleteReply().catch(() => {});
+  } finally {
+    isProcessing = false;
+  }
+}
+
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -765,7 +855,12 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  if (["news", "summary", "haiku", "story", "question"].includes(commandName)) {
+  if (commandName === "poll") {
+    await handlePollCommand(interaction);
+    return;
+  }
+
+  if (["news", "summary", "haiku", "story", "question", "mvp", "fortune", "title"].includes(commandName)) {
     await handleSlashCommand(interaction);
   }
 });
