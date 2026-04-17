@@ -234,6 +234,25 @@ let isClientReady = false;
 let isProcessing = false;
 const summaryWindowMs = 24 * 60 * 60 * 1000;
 const logCharLimit = parseInt(process.env.LOG_CHAR_LIMIT ?? "16000", 10);
+const thinkingMessages = [
+  "なんか寒くない？",
+  "ねむい...",
+  "お腹すいたかも...",
+  "うーん、むずかしい...",
+  "あ、これ面白いかも",
+  "えーと...えーと...",
+  "もうちょっとだけ待ってっ",
+  "ふむふむ...",
+  "なんか眠くなってきた...",
+  "集中してますっ！たぶん",
+  "...ちょっと難しいかも",
+  "もうすぐだと思いますっ",
+  "なんかいい感じな気がする",
+  "うーん、どうしようかな",
+  "あと少しですっ、たぶん",
+  "頑張ってますっ、本当に",
+];
+
 const emojiPattern =
   /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
 
@@ -501,7 +520,8 @@ async function generateAiSummary(promptConfig, logText, validate = false, onProg
   let lastOutput = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    onProgress?.(validate ? `まろやかAIが頑張って考えていますっ... (${attempt + 1}/${maxAttempts}回目)` : "まろやかAIが頑張って考えていますっ...");
+    const mutter = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
+    onProgress?.(validate ? `${mutter}（${attempt + 1}/${maxAttempts}回目）` : mutter);
     const response = await ollama.chat(
       {
         model: modelName,
