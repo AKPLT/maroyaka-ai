@@ -30,8 +30,10 @@ function loadScheduleConfig() {
     if (data && typeof data === "object" && !data.guilds) {
       const legacy = {
         channelId: data.scheduledChannelId || null,
-        scheduleHour: typeof data.scheduleHour === "number" ? data.scheduleHour : 8,
-        scheduleMinute: typeof data.scheduleMinute === "number" ? data.scheduleMinute : 0,
+        scheduleHour:
+          typeof data.scheduleHour === "number" ? data.scheduleHour : 8,
+        scheduleMinute:
+          typeof data.scheduleMinute === "number" ? data.scheduleMinute : 0,
       };
       return { guilds: {}, legacy };
     }
@@ -43,7 +45,11 @@ function loadScheduleConfig() {
 
 function saveScheduleConfig() {
   try {
-    fs.writeFileSync(scheduleConfigPath, JSON.stringify(scheduleConfig, null, 2), "utf8");
+    fs.writeFileSync(
+      scheduleConfigPath,
+      JSON.stringify(scheduleConfig, null, 2),
+      "utf8",
+    );
   } catch (error) {
     console.error("scheduleConfig 保存エラー:", error);
   }
@@ -59,7 +65,10 @@ function getScheduledChannelId(guildId) {
 
 function setGuildConfig(guildId, partial) {
   scheduleConfig.guilds = scheduleConfig.guilds || {};
-  scheduleConfig.guilds[guildId] = { ...scheduleConfig.guilds[guildId], ...partial };
+  scheduleConfig.guilds[guildId] = {
+    ...scheduleConfig.guilds[guildId],
+    ...partial,
+  };
   saveScheduleConfig();
   if (isClientReady) scheduleGuildNews(guildId);
   return scheduleConfig.guilds[guildId];
@@ -134,7 +143,9 @@ function scheduleGuildNews(guildId) {
       (await discordClient.channels.fetch(channelId).catch(() => null));
 
     if (!channel) {
-      console.warn(`定期ニュース配信先チャンネルが見つかりませんでした: ${channelId}`);
+      console.warn(
+        `定期ニュース配信先チャンネルが見つかりませんでした: ${channelId}`,
+      );
       return;
     }
 
@@ -161,7 +172,9 @@ function scheduleDailyNews() {
           (await discordClient.channels.fetch(channelId).catch(() => null));
 
         if (!channel) {
-          console.warn(`定期ニュース配信先チャンネルが見つかりませんでした: ${channelId}`);
+          console.warn(
+            `定期ニュース配信先チャンネルが見つかりませんでした: ${channelId}`,
+          );
           return;
         }
 
@@ -176,7 +189,9 @@ function scheduleDailyNews() {
   }
 
   if (guildIds.length === 0) {
-    console.warn("定期配信先チャンネルが未設定です。定期ニュース配信は無効です。");
+    console.warn(
+      "定期配信先チャンネルが未設定です。定期ニュース配信は無効です。",
+    );
     return;
   }
 
@@ -184,7 +199,9 @@ function scheduleDailyNews() {
 
   console.log(
     `定期ニュース配信を cron でスケジュールしました: 毎日 ${
-      guildIds.length === 1 ? getScheduleTimeString(guildIds[0]) : "各サーバーの設定時刻"
+      guildIds.length === 1
+        ? getScheduleTimeString(guildIds[0])
+        : "各サーバーの設定時刻"
     } に実行されます。`,
   );
 }
@@ -198,7 +215,8 @@ async function postScheduledNews(channel) {
 
     console.log(`Ollama に送信中...`);
     const style = getNewsStyle(channel.guild.id);
-    const summaryPrompt = prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
+    const summaryPrompt =
+      prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
     const summary = await generateAiSummary(summaryPrompt, logText);
     const mvp = await generateAiSummary(prompts.mvp, logText);
     const haiku = await generateAiSummary(prompts.haiku, logText);

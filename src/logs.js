@@ -27,7 +27,8 @@ async function fetchAndCleanLogs(channel, cutoff) {
       channelAllMessages.push(...validMessages.values());
 
       fetchCount += fetched.size;
-      if (fetched.size < 100 || fetched.last().createdTimestamp <= cutoff) break;
+      if (fetched.size < 100 || fetched.last().createdTimestamp <= cutoff)
+        break;
       lastId = fetched.last().id;
 
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -37,7 +38,8 @@ async function fetchAndCleanLogs(channel, cutoff) {
   }
 
   const validMessages = channelAllMessages.filter(
-    (m) => !m.author.bot && !m.content.startsWith("/") && m.content.trim() !== "",
+    (m) =>
+      !m.author.bot && !m.content.startsWith("/") && m.content.trim() !== "",
   );
 
   const uniqueUserIds = [...new Set(validMessages.map((m) => m.author.id))];
@@ -52,7 +54,8 @@ async function fetchAndCleanLogs(channel, cutoff) {
   return validMessages
     .map((m) => {
       const member = memberMap.get(m.author.id) ?? m.member;
-      const authorName = member?.nickname ?? member?.displayName ?? m.author.username;
+      const authorName =
+        member?.nickname ?? member?.displayName ?? m.author.username;
 
       let text = m.content
         .replace(/https?:\/\/[\w/:%#\$&\?\(\)~\.=\+\-]+/g, "")

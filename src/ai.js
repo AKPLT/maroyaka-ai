@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { Ollama } = require("ollama");
 const thinkingMessages = require("../data/thinkingMessages");
+const { CommandInteractionOptionResolver } = require("discord.js");
 
 const ROOT = path.join(__dirname, "..");
 const ollama = new Ollama({
@@ -43,19 +44,26 @@ async function validateOutput(
         { role: "system", content: promptConfig.system },
         {
           role: "user",
-          content: `以下の出力がシステムプロンプトのすべてのルールを厳密に守っているか確認してください。YESまたはNOのみで答えてください。\n\n${output}`,
+          content: `以下の出力がシステムプロンプトのすべてのルールを守っているか確認してください。必ず「YES」または「NO」のみで答えてください。\n\n${output}`,
         },
       ],
     },
     { signal: AbortSignal.timeout(ollamaTimeoutMs) },
   );
+
+  console.log(`--- バリデーション詳細 ---`);
+  console.log(`判定結果: ${response.message.content.trim()}`);
+  console.log(`モデル: ${targetModel}`);
+  console.log(`元の文:\n${output}`);
+  console.log(`------------------------`);
+
   return response.message.content.trim().toUpperCase().startsWith("YES");
 }
 
 async function generateAiSummary(
   promptConfig,
   logText,
-  validate = false,
+  validate = true,
   onProgress = null,
   targetModel = modelNameCommon,
 ) {
@@ -76,7 +84,7 @@ async function generateAiSummary(
     process.env.OLLAMA_TIMEOUT_MS ?? "300000",
     10,
   );
-  const maxAttempts = validate ? 3 : 1;
+  const maxAttempts = validate ? 5 : 1;
   let lastOutput = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -105,7 +113,7 @@ async function generateAiSummary(
       lastOutput,
       promptConfig,
       ollamaTimeoutMs,
-      validarionModelName,
+      modelNameValidation,
     );
     if (isValid) {
       console.log(`バリデーション成功 (${attempt + 1}回目)`);

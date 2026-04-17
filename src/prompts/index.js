@@ -7,7 +7,7 @@ module.exports = {
   SUMMARY_STYLES,
 
   // /news・/summary のデフォルト
-  news:    maroyakaBase,
+  news: maroyakaBase,
   summary: maroyakaBase,
 
   // 個別コマンドプロンプト
