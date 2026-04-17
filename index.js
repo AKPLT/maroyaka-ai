@@ -176,6 +176,7 @@ let scheduleConfig = loadScheduleConfig();
 const scheduledTasks = new Map();
 let isClientReady = false;
 const summaryWindowMs = 24 * 60 * 60 * 1000;
+const logCharLimit = parseInt(process.env.LOG_CHAR_LIMIT ?? "16000", 10);
 const emojiPattern =
   /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
 
@@ -411,7 +412,7 @@ async function generateAiSummary(promptConfig, logText) {
     model: modelName,
     messages: [
       { role: "system", content: promptConfig.system },
-      { role: "user", content: promptConfig.user(logText.substring(0, 6000)) },
+      { role: "user", content: promptConfig.user(logText.substring(0, logCharLimit)) },
     ],
   });
 
