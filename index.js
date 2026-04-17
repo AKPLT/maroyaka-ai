@@ -37,7 +37,7 @@ const commands = [
       option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
     )
     .addBooleanOption((option) =>
-      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
     ),
   new SlashCommandBuilder()
     .setName("summary")
@@ -46,7 +46,7 @@ const commands = [
       option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
     )
     .addBooleanOption((option) =>
-      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
     ),
   new SlashCommandBuilder()
     .setName("haiku")
@@ -55,7 +55,7 @@ const commands = [
       option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
     )
     .addBooleanOption((option) =>
-      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
     ),
   new SlashCommandBuilder()
     .setName("story")
@@ -64,7 +64,7 @@ const commands = [
       option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
     )
     .addBooleanOption((option) =>
-      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
     ),
   new SlashCommandBuilder()
     .setName("question")
@@ -73,7 +73,7 @@ const commands = [
       option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
     )
     .addBooleanOption((option) =>
-      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
     ),
   new SlashCommandBuilder()
     .setName("suggesttopic")
@@ -82,7 +82,7 @@ const commands = [
       option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
     )
     .addBooleanOption((option) =>
-      option.setName("validate").setDescription("出力を検証し、問題があれば再生成します（時間がかかります）"),
+      option.setName("validate").setDescription("出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）"),
     ),
   new SlashCommandBuilder()
     .setName("setnewschannel")
