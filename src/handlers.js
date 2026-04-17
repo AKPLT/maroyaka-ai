@@ -176,6 +176,55 @@ async function handleSetNewsStyle(interaction) {
   });
 }
 
+async function handleHelp(interaction) {
+  const embed = new EmbedBuilder()
+    .setTitle("まろやかAI コマンド一覧ですっ")
+    .addFields(
+      {
+        name: "サーバー全体のAIコマンド",
+        value: [
+          "`/news` サーバー全体の24時間をまろやかに要約",
+          "`/haiku` 今日の出来事を五・七・五で詠む",
+          "`/mvp` 今日一番面白かった発言を選ぶ",
+          "`/title` 今日活躍したメンバーに称号を授ける",
+          "`/wanted` 今日一番やらかしたメンバーの指名手配書",
+          "`/fortune` 今日の雰囲気でサーバーのおみくじ",
+        ].join("\n"),
+      },
+      {
+        name: "チャンネルのAIコマンド",
+        value: [
+          "`/summary` チャンネルの24時間を要約",
+          "`/story` 今日の会話をもとに短編小説を書く",
+          "`/question` みんなへの質問を1つ投げかける",
+          "`/suggesttopic` 次の話題を提案する",
+          "`/drama` 今日の会話を昼ドラ風に脚色",
+          "`/report` 今日の会話を業務報告書風にまとめる",
+        ].join("\n"),
+      },
+      {
+        name: "共通オプション（AIコマンド）",
+        value: [
+          "`private` 自分にだけ見えるメッセージで返す",
+          "`validate` 出力を検証して再生成（True: 低速・高品質）",
+          "`style` 要約スタイルを選択（`/news` `/summary` のみ）",
+        ].join("\n"),
+      },
+      {
+        name: "設定コマンド",
+        value: [
+          "`/setnewschannel` 定期配信先チャンネルを設定",
+          "`/setnewstime` 定期配信の時刻を設定",
+          "`/setnewsstyle` 定期配信の要約スタイルを設定",
+          "`/getnewschannel` 現在の定期配信設定を確認",
+        ].join("\n"),
+      },
+    )
+    .setColor(0xf5c2e7)
+    .setTimestamp();
+  return interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
 async function handleSetNewsTime(interaction) {
   const hour = interaction.options.getInteger("hour");
   const minute = interaction.options.getInteger("minute");
@@ -209,4 +258,5 @@ module.exports = {
   handleGetNewsChannel,
   handleSetNewsTime,
   handleSetNewsStyle,
+  handleHelp,
 };

@@ -61,6 +61,7 @@ client.on("interactionCreate", async (interaction) => {
     return handlers.handleGetNewsChannel(interaction);
   if (commandName === "suggesttopic")
     return handlers.handleSuggestTopic(interaction);
+  if (commandName === "help") return handlers.handleHelp(interaction);
   if (handlers.AI_COMMANDS.includes(commandName))
     return handlers.handleSlashCommand(interaction);
 });

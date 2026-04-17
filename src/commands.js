@@ -93,6 +93,9 @@ const commands = [
         .setRequired(true)
         .addChoices(...STYLE_CHOICES),
     ),
+  new SlashCommandBuilder()
+    .setName("help")
+    .setDescription("使えるコマンドの一覧を表示します"),
 ].map((command) => command.toJSON());
 
 module.exports = commands;
