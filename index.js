@@ -12,6 +12,7 @@ const path = require("path");
 const cron = require("node-cron");
 const { Ollama } = require("ollama");
 const prompts = require("./prompts");
+const thinkingMessages = require("./thinkingMessages");
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
@@ -234,25 +235,6 @@ let isClientReady = false;
 let isProcessing = false;
 const summaryWindowMs = 24 * 60 * 60 * 1000;
 const logCharLimit = parseInt(process.env.LOG_CHAR_LIMIT ?? "16000", 10);
-const thinkingMessages = [
-  "なんか寒くない？",
-  "ねむい...",
-  "お腹すいたかも...",
-  "うーん、むずかしい...",
-  "あ、これ面白いかも",
-  "えーと...えーと...",
-  "もうちょっとだけ待ってっ",
-  "ふむふむ...",
-  "なんか眠くなってきた...",
-  "集中してますっ！たぶん",
-  "...ちょっと難しいかも",
-  "もうすぐだと思いますっ",
-  "なんかいい感じな気がする",
-  "うーん、どうしようかな",
-  "あと少しですっ、たぶん",
-  "頑張ってますっ、本当に",
-];
-
 const emojiPattern =
   /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
 
@@ -489,6 +471,17 @@ async function collectChannelLogs(channel, onProgress = null) {
   return logs.reverse().join("\n");
 }
 
+function startThinkingInterval(onProgress, intervalMs = 4000) {
+  if (!onProgress) return () => {};
+  const tick = () => {
+    const msg = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
+    onProgress(`まろやかAIが頑張っていますっ\n${msg}`);
+  };
+  tick();
+  const id = setInterval(tick, intervalMs);
+  return () => clearInterval(id);
+}
+
 async function validateOutput(output, promptConfig, ollamaTimeoutMs) {
   const response = await ollama.chat(
     {
@@ -520,19 +513,22 @@ async function generateAiSummary(promptConfig, logText, validate = false, onProg
   let lastOutput = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const mutter = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
-    onProgress?.(validate ? `${mutter}（${attempt + 1}/${maxAttempts}回目）` : mutter);
-    const response = await ollama.chat(
-      {
-        model: modelName,
-        messages: [
-          { role: "system", content: promptConfig.system },
-          { role: "user", content: promptConfig.user(truncatedLog) },
-        ],
-      },
-      { signal: AbortSignal.timeout(ollamaTimeoutMs) },
-    );
-    lastOutput = sanitizeText(response.message.content);
+    const stopThinking = startThinkingInterval(onProgress);
+    try {
+      const response = await ollama.chat(
+        {
+          model: modelName,
+          messages: [
+            { role: "system", content: promptConfig.system },
+            { role: "user", content: promptConfig.user(truncatedLog) },
+          ],
+        },
+        { signal: AbortSignal.timeout(ollamaTimeoutMs) },
+      );
+      lastOutput = sanitizeText(response.message.content);
+    } finally {
+      stopThinking();
+    }
 
     if (!validate) break;
 
