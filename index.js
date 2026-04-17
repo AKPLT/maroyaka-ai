@@ -481,7 +481,7 @@ async function validateOutput(output, promptConfig, ollamaTimeoutMs) {
   return response.message.content.trim().toUpperCase().startsWith("YES");
 }
 
-async function generateAiSummary(promptConfig, logText, validate = false) {
+async function generateAiSummary(promptConfig, logText, validate = false, onProgress = null) {
   const truncatedLog = logText.substring(0, logCharLimit);
   const logFilePath = path.join(__dirname, "last_prompt.log");
   fs.writeFileSync(
@@ -495,6 +495,7 @@ async function generateAiSummary(promptConfig, logText, validate = false) {
   let lastOutput = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    onProgress?.(validate ? `AIに送信中ですっ... (${attempt + 1}/${maxAttempts}回目)` : "AIに送信中ですっ...");
     const response = await ollama.chat(
       {
         model: modelName,
@@ -509,13 +510,19 @@ async function generateAiSummary(promptConfig, logText, validate = false) {
 
     if (!validate) break;
 
+    onProgress?.(`バリデーション中ですっ... (${attempt + 1}/${maxAttempts}回目)`);
     console.log(`バリデーション中... (${attempt + 1}/${maxAttempts}回目)`);
     const isValid = await validateOutput(lastOutput, promptConfig, ollamaTimeoutMs);
     if (isValid) {
       console.log(`バリデーション成功 (${attempt + 1}回目)`);
       break;
     }
-    console.log(attempt < maxAttempts - 1 ? `バリデーション失敗 (${attempt + 1}回目)、再生成中...` : `バリデーション失敗 (最終試行)、最後の出力を使用します`);
+    if (attempt < maxAttempts - 1) {
+      onProgress?.(`もう一度試みますっ... (${attempt + 2}/${maxAttempts}回目)`);
+      console.log(`バリデーション失敗 (${attempt + 1}回目)、再生成中...`);
+    } else {
+      console.log(`バリデーション失敗 (最終試行)、最後の出力を使用します`);
+    }
   }
 
   return lastOutput;
@@ -579,13 +586,16 @@ async function handleSlashCommand(interaction) {
   const ephemeral = interaction.options.getBoolean("private") ?? false;
   await interaction.deferReply({ ephemeral });
   isProcessing = true;
+  const progress = (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
 
   try {
     let logText = "";
     if (interaction.commandName === "news") {
       console.log("全チャンネルの巡回を開始...");
+      await progress("サーバー全体のメッセージを収集中ですっ...");
       logText = await collectServerLogs(interaction.guild);
     } else {
+      await progress("チャンネルのメッセージを収集中ですっ...");
       logText = await collectChannelLogs(interaction.channel);
     }
 
@@ -593,10 +603,9 @@ async function handleSlashCommand(interaction) {
       return interaction.deleteReply();
     }
 
-    console.log(`Ollama (${modelName}) に送信中...`);
     const validate = interaction.options.getBoolean("validate") ?? false;
     const promptConfig = prompts[interaction.commandName];
-    const replyContent = await generateAiSummary(promptConfig, logText, validate);
+    const replyContent = await generateAiSummary(promptConfig, logText, validate, progress);
 
     const title = getEmbedTitle(
       interaction.commandName,
@@ -682,7 +691,9 @@ async function handleSuggestTopic(interaction) {
   const ephemeral = interaction.options.getBoolean("private") ?? false;
   await interaction.deferReply({ ephemeral });
   isProcessing = true;
+  const progress = (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
 
+  await progress("チャンネルのメッセージを収集中ですっ...");
   const logText = await collectChannelLogs(interaction.channel);
   if (!logText) {
     isProcessing = false;
@@ -692,7 +703,7 @@ async function handleSuggestTopic(interaction) {
   const validate = interaction.options.getBoolean("validate") ?? false;
   console.log("話題提案を生成中...");
   try {
-    const suggestion = await generateAiSummary(prompts.topic, logText, validate);
+    const suggestion = await generateAiSummary(prompts.topic, logText, validate, progress);
     if (!suggestion) {
       return interaction.deleteReply();
     }
