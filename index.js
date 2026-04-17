@@ -32,16 +32,28 @@ const client = new Client({
 const commands = [
   new SlashCommandBuilder()
     .setName("news")
-    .setDescription("サーバー全体の24時間をまろやかに要約します"),
+    .setDescription("サーバー全体の24時間をまろやかに要約します")
+    .addBooleanOption((option) =>
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    ),
   new SlashCommandBuilder()
     .setName("summary")
-    .setDescription("チャンネルの24時間をまろやかに要約します"),
+    .setDescription("チャンネルの24時間をまろやかに要約します")
+    .addBooleanOption((option) =>
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    ),
   new SlashCommandBuilder()
     .setName("haiku")
-    .setDescription("サーバー全体の24時間の出来事を五・七・五で詠みます"),
+    .setDescription("サーバー全体の24時間の出来事を五・七・五で詠みます")
+    .addBooleanOption((option) =>
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    ),
   new SlashCommandBuilder()
     .setName("suggesttopic")
-    .setDescription("過去の会話をもとに、次の話題を提案します"),
+    .setDescription("過去の会話をもとに、次の話題を提案します")
+    .addBooleanOption((option) =>
+      option.setName("private").setDescription("自分にだけ見えるメッセージで返します"),
+    ),
   new SlashCommandBuilder()
     .setName("setnewschannel")
     .setDescription("定期配信先チャンネルを設定します")
@@ -469,7 +481,8 @@ function getEmbedTitle(commandName, channelName) {
 }
 
 async function handleSlashCommand(interaction) {
-  await interaction.deferReply();
+  const ephemeral = interaction.options.getBoolean("private") ?? false;
+  await interaction.deferReply({ ephemeral });
 
   try {
     let logText = "";
@@ -564,7 +577,8 @@ async function handleSetNewsTime(interaction) {
 }
 
 async function handleSuggestTopic(interaction) {
-  await interaction.deferReply();
+  const ephemeral = interaction.options.getBoolean("private") ?? false;
+  await interaction.deferReply({ ephemeral });
 
   const logText = await collectChannelLogs(interaction.channel);
   if (!logText) {
