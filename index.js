@@ -610,7 +610,7 @@ async function handleSlashCommand(interaction) {
   }
 
   const ephemeral = interaction.options.getBoolean("private") ?? false;
-  await interaction.deferReply({ ephemeral });
+  await interaction.deferReply({ ephemeral: true }); // 進捗は常に自分だけ見える
   isProcessing = true;
   const progress = (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
 
@@ -641,7 +641,7 @@ async function handleSlashCommand(interaction) {
       .setColor(0xf5c2e7)
       .setTimestamp();
     await interaction.deleteReply();
-    await interaction.followUp({ embeds: [embed] });
+    await interaction.followUp({ embeds: [embed], ephemeral });
   } catch (error) {
     console.error("Error:", error);
     await interaction.deleteReply().catch(() => {});
@@ -714,7 +714,7 @@ async function handleSuggestTopic(interaction) {
   }
 
   const ephemeral = interaction.options.getBoolean("private") ?? false;
-  await interaction.deferReply({ ephemeral });
+  await interaction.deferReply({ ephemeral: true }); // 進捗は常に自分だけ見える
   isProcessing = true;
   const progress = (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
 
@@ -738,7 +738,7 @@ async function handleSuggestTopic(interaction) {
       .setColor(0xf5c2e7)
       .setTimestamp();
     await interaction.deleteReply();
-    return interaction.followUp({ embeds: [embed] });
+    return interaction.followUp({ embeds: [embed], ephemeral });
   } catch (error) {
     console.error("Topic suggestion error:", error);
     return interaction.deleteReply().catch(() => {});
