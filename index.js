@@ -620,10 +620,11 @@ async function handleSlashCommand(interaction) {
       .setDescription(replyContent)
       .setColor(0xf5c2e7)
       .setTimestamp();
-    await interaction.editReply({ content: "", embeds: [embed] });
+    await interaction.deleteReply();
+    await interaction.followUp({ embeds: [embed] });
   } catch (error) {
     console.error("Error:", error);
-    await interaction.deleteReply();
+    await interaction.deleteReply().catch(() => {});
   } finally {
     isProcessing = false;
   }
@@ -716,10 +717,11 @@ async function handleSuggestTopic(interaction) {
       .setDescription(suggestion)
       .setColor(0xf5c2e7)
       .setTimestamp();
-    return interaction.editReply({ content: "", embeds: [embed] });
+    await interaction.deleteReply();
+    return interaction.followUp({ embeds: [embed] });
   } catch (error) {
     console.error("Topic suggestion error:", error);
-    return interaction.deleteReply();
+    return interaction.deleteReply().catch(() => {});
   } finally {
     isProcessing = false;
   }
