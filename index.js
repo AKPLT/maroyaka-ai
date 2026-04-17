@@ -475,7 +475,7 @@ function startThinkingInterval(onProgress, intervalMs = 4000) {
   if (!onProgress) return () => {};
   const tick = () => {
     const msg = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
-    onProgress(`まろやかAIが頑張っていますっ\n${msg}`);
+    onProgress(`まろやかAIが頑張っていますっ\n（${msg}）`);
   };
   tick();
   const id = setInterval(tick, intervalMs);
@@ -606,7 +606,7 @@ async function handleSlashCommand(interaction) {
   }
 
   const ephemeral = interaction.options.getBoolean("private") ?? false;
-  await interaction.deferReply({ ephemeral: true }); // 進捗は常に自分だけ見える
+  await interaction.deferReply({ ephemeral });
   isProcessing = true;
   const progress = (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
 
@@ -636,8 +636,7 @@ async function handleSlashCommand(interaction) {
       .setDescription(replyContent)
       .setColor(0xf5c2e7)
       .setTimestamp();
-    await interaction.deleteReply();
-    await interaction.followUp({ embeds: [embed], ephemeral });
+    await interaction.editReply({ content: "", embeds: [embed] });
   } catch (error) {
     console.error("Error:", error);
     await interaction.deleteReply().catch(() => {});
@@ -710,7 +709,7 @@ async function handleSuggestTopic(interaction) {
   }
 
   const ephemeral = interaction.options.getBoolean("private") ?? false;
-  await interaction.deferReply({ ephemeral: true }); // 進捗は常に自分だけ見える
+  await interaction.deferReply({ ephemeral });
   isProcessing = true;
   const progress = (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
 
@@ -733,8 +732,7 @@ async function handleSuggestTopic(interaction) {
       .setDescription(suggestion)
       .setColor(0xf5c2e7)
       .setTimestamp();
-    await interaction.deleteReply();
-    return interaction.followUp({ embeds: [embed], ephemeral });
+    return interaction.editReply({ content: "", embeds: [embed] });
   } catch (error) {
     console.error("Topic suggestion error:", error);
     return interaction.deleteReply().catch(() => {});
