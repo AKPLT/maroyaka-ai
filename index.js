@@ -439,18 +439,22 @@ function isPublicTextChannel(channel, guild) {
   );
 }
 
-async function collectServerLogs(guild) {
+async function collectServerLogs(guild, onProgress = null) {
   const cutoff = Date.now() - summaryWindowMs;
   await guild.channels.fetch();
 
-  const channels = guild.channels.cache.filter((channel) =>
+  const channels = [...guild.channels.cache.filter((channel) =>
     isPublicTextChannel(channel, guild),
-  );
+  ).values()];
 
   let allLogs = [];
-  for (const channel of channels.values()) {
+  let totalCount = 0;
+  for (let i = 0; i < channels.length; i++) {
+    const channel = channels[i];
     console.log(`取得中... #${channel.name}`);
+    onProgress?.(`#${channel.name} を取得中ですっ... (${i + 1}/${channels.length}チャンネル, 計${totalCount}件)`);
     const logs = await fetchAndCleanLogs(channel, cutoff);
+    totalCount += logs.length;
     allLogs.push(...logs);
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
@@ -458,9 +462,11 @@ async function collectServerLogs(guild) {
   return allLogs.reverse().join("\n");
 }
 
-async function collectChannelLogs(channel) {
+async function collectChannelLogs(channel, onProgress = null) {
   const cutoff = Date.now() - summaryWindowMs;
+  onProgress?.(`#${channel.name} のメッセージを取得中ですっ...`);
   const logs = await fetchAndCleanLogs(channel, cutoff);
+  onProgress?.(`#${channel.name} から ${logs.length}件 取得しましたっ`);
   return logs.reverse().join("\n");
 }
 
@@ -510,7 +516,7 @@ async function generateAiSummary(promptConfig, logText, validate = false, onProg
 
     if (!validate) break;
 
-    onProgress?.(`バリデーション中ですっ... (${attempt + 1}/${maxAttempts}回目)`);
+    onProgress?.(`回答を検証中ですっ... (${attempt + 1}/${maxAttempts}回目)`);
     console.log(`バリデーション中... (${attempt + 1}/${maxAttempts}回目)`);
     const isValid = await validateOutput(lastOutput, promptConfig, ollamaTimeoutMs);
     if (isValid) {
@@ -592,11 +598,9 @@ async function handleSlashCommand(interaction) {
     let logText = "";
     if (interaction.commandName === "news") {
       console.log("全チャンネルの巡回を開始...");
-      await progress("サーバー全体のメッセージを収集中ですっ...");
-      logText = await collectServerLogs(interaction.guild);
+      logText = await collectServerLogs(interaction.guild, progress);
     } else {
-      await progress("チャンネルのメッセージを収集中ですっ...");
-      logText = await collectChannelLogs(interaction.channel);
+      logText = await collectChannelLogs(interaction.channel, progress);
     }
 
     if (!logText) {
@@ -693,8 +697,7 @@ async function handleSuggestTopic(interaction) {
   isProcessing = true;
   const progress = (msg) => interaction.editReply({ content: msg, embeds: [] }).catch(() => {});
 
-  await progress("チャンネルのメッセージを収集中ですっ...");
-  const logText = await collectChannelLogs(interaction.channel);
+  const logText = await collectChannelLogs(interaction.channel, progress);
   if (!logText) {
     isProcessing = false;
     return interaction.deleteReply();
