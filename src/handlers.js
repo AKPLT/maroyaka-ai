@@ -14,8 +14,6 @@ const AI_COMMANDS = [
   "fortune",
   "title",
   "wanted",
-  "drama",
-  "report",
 ];
 
 let isProcessing = false;
