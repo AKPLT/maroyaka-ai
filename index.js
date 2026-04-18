@@ -44,6 +44,7 @@ client.once("clientReady", () => {
   console.log(`Logged in as ${client.user.tag}`);
   schedule.setClientReady();
   schedule.scheduleDailyNews();
+  schedule.scheduleAppearanceCheck();
 });
 
 client.on("interactionCreate", async (interaction) => {

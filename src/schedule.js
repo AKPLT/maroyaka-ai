@@ -206,6 +206,63 @@ function scheduleDailyNews() {
   );
 }
 
+function getNextAppearanceTimestamp(guildId) {
+  return getGuildConfig(guildId).nextAppearanceTimestamp ?? null;
+}
+
+function scheduleNextAppearance(guildId) {
+  const days = 25 + Math.floor(Math.random() * 11); // 25〜35日後
+  const next = Date.now() + days * 24 * 60 * 60 * 1000;
+  setGuildConfig(guildId, { nextAppearanceTimestamp: next });
+  console.log(`次回のまろやかAI参上: ${days}日後 (${new Date(next).toLocaleDateString("ja-JP")})`);
+}
+
+async function postAppearance(channel) {
+  try {
+    const message = await generateAiSummary(prompts.appearance, "");
+    if (message) await channel.send(message);
+  } catch (error) {
+    console.error("Appearance post error:", error);
+  }
+}
+
+async function checkAndPostAppearances() {
+  const now = Date.now();
+  const guildIds = Object.keys(scheduleConfig.guilds || {});
+
+  for (const guildId of guildIds) {
+    const channelId = getScheduledChannelId(guildId);
+    if (!channelId) continue;
+
+    const next = getNextAppearanceTimestamp(guildId);
+    if (next === null) {
+      scheduleNextAppearance(guildId);
+      continue;
+    }
+    if (now < next) continue;
+
+    const channel =
+      discordClient.channels.cache.get(channelId) ||
+      (await discordClient.channels.fetch(channelId).catch(() => null));
+
+    if (channel) {
+      console.log(`まろやかAI参上投稿: guild=${guildId}`);
+      await postAppearance(channel);
+    }
+    scheduleNextAppearance(guildId);
+  }
+}
+
+let appearanceTask = null;
+
+function scheduleAppearanceCheck() {
+  if (appearanceTask) appearanceTask.stop();
+  appearanceTask = cron.schedule("0 12 * * *", async () => {
+    if (!isClientReady) return;
+    await checkAndPostAppearances();
+  });
+}
+
 async function postScheduledNews(channel) {
   if (!channel || !channel.isTextBased() || channel.isThread()) return;
 
@@ -241,6 +298,7 @@ module.exports = {
   setClientReady,
   scheduleDailyNews,
   scheduleGuildNews,
+  scheduleAppearanceCheck,
   postScheduledNews,
   getScheduledChannelId,
   setScheduledChannelId,
