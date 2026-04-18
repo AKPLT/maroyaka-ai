@@ -48,7 +48,7 @@ async function handleSlashCommand(interaction) {
     return interaction.reply({ content: BUSY_MESSAGE, ephemeral: true });
   }
 
-  const ephemeral = interaction.options.getBoolean("private") ?? false;
+  const ephemeral = interaction.options.getBoolean("private") ?? true;
   await interaction.deferReply({ ephemeral });
   isProcessing = true;
   const progress = makeProgress(interaction);
@@ -115,7 +115,7 @@ async function handleSuggestTopic(interaction) {
     return interaction.reply({ content: BUSY_MESSAGE, ephemeral: true });
   }
 
-  const ephemeral = interaction.options.getBoolean("private") ?? false;
+  const ephemeral = interaction.options.getBoolean("private") ?? true;
   await interaction.deferReply({ ephemeral });
   isProcessing = true;
   const progress = makeProgress(interaction);
