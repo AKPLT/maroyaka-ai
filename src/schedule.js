@@ -5,7 +5,7 @@ const { EmbedBuilder } = require("discord.js");
 const prompts = require("./prompts");
 const { collectServerLogs } = require("./logs");
 const { generateAiSummary } = require("./ai");
-const { parseTopicsToFields } = require("./handlers");
+const { parseTopicsToFields } = require("./utils");
 
 const ROOT = path.join(__dirname, "..");
 const scheduleConfigPath = path.join(ROOT, "scheduleConfig.json");
