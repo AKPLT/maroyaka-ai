@@ -257,6 +257,10 @@ const maroyakaCooldowns = new Map();
 const MAROYAKA_COOLDOWN_MS = 60 * 60 * 1000;
 const MAX_CONVERSATION_DEPTH = 10;
 
+const monitoringSessions = new Map(); // channelId -> { expiresAt, context: [] }
+const MONITORING_DURATION_MS = 10 * 60 * 1000;
+const MAX_MONITORING_CONTEXT = 10;
+
 const CONVERSATION_SYSTEM = `あなたはDiscordサーバーのかわいいAIキャラクター「まろやかAI」です。
 
 【絶対に守ること】
@@ -304,14 +308,31 @@ async function handleMessageCreate(message, botId) {
         await message.reply(reply).catch(() => {});
         return;
       }
-    } catch {
-      // 取得失敗時は無視
-    }
+    } catch {}
   }
 
-  // 「まろやかAI」またはボットへのメンションを含む投稿 → クールダウン付き反応
+  // 監視セッション中 → 関係あれば空リプで割り込む
+  const session = monitoringSessions.get(message.channelId);
+  if (session && Date.now() < session.expiresAt) {
+    session.context.push(`${message.author.displayName}: ${message.content}`);
+    if (session.context.length > MAX_MONITORING_CONTEXT) session.context.shift();
+    try {
+      const contextText = session.context.join("\n");
+      const response = await generateAiSummary(
+        prompts.monitoringReaction,
+        contextText,
+      );
+      if (response && !response.trimStart().startsWith("SKIP")) {
+        await message.channel.send(response).catch(() => {});
+      }
+    } catch {}
+    return;
+  }
+
+  // 「まろやかAI」またはメンション → クールダウン付き反応（空リプ）＋監視開始
   const mentionsBot = message.mentions.users.has(botId);
   if (!mentionsBot && !message.content.includes("まろやかAI")) return;
+
   const now = Date.now();
   const lastTime = maroyakaCooldowns.get(message.channelId) ?? 0;
   if (now - lastTime < MAROYAKA_COOLDOWN_MS) return;
@@ -322,14 +343,24 @@ async function handleMessageCreate(message, botId) {
       prompts.maroyakaReaction,
       message.content,
     );
-    await message.reply(reply || MAROYAKA_FALLBACK_RESPONSES[0]).catch(() => {});
+    await message.channel.send(reply || MAROYAKA_FALLBACK_RESPONSES[0]).catch(() => {});
   } catch {
     const fallback =
       MAROYAKA_FALLBACK_RESPONSES[
         Math.floor(Math.random() * MAROYAKA_FALLBACK_RESPONSES.length)
       ];
-    await message.reply(fallback).catch(() => {});
+    await message.channel.send(fallback).catch(() => {});
   }
+
+  // 監視セッション開始
+  monitoringSessions.set(message.channelId, {
+    expiresAt: now + MONITORING_DURATION_MS,
+    context: [`${message.author.displayName}: ${message.content}`],
+  });
+  setTimeout(
+    () => monitoringSessions.delete(message.channelId),
+    MONITORING_DURATION_MS,
+  );
 }
 
 module.exports = {
