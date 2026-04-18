@@ -2,6 +2,7 @@ const {
   joinVoiceChannel,
   createAudioPlayer,
   createAudioResource,
+  StreamType,
   AudioPlayerStatus,
   VoiceConnectionStatus,
   entersState,
@@ -57,7 +58,9 @@ async function processQueue(guildId) {
 
   try {
     const buffer = await synthesize(text);
-    const resource = createAudioResource(Readable.from(buffer));
+    const resource = createAudioResource(Readable.from(buffer), {
+      inputType: StreamType.Arbitrary,
+    });
     state.player.play(resource);
   } catch (err) {
     console.error(`[voice] TTS エラー: ${err.message}`);
