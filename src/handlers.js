@@ -227,7 +227,7 @@ async function handleHelp(interaction) {
       {
         name: "共通オプション（AIコマンド）",
         value: [
-          "`private` 自分にだけ見えるメッセージで返す",
+          "`private` 自分にだけ見えるメッセージで返す（デフォルト: オン）",
           "`style` 要約スタイルを選択（`/news` `/summary` のみ）",
         ].join("\n"),
       },
