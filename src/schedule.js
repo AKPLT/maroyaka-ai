@@ -282,7 +282,7 @@ async function postScheduledNews(channel) {
   if (!channel || !channel.isTextBased() || channel.isThread()) return;
 
   try {
-    const logText = await collectServerLogs(channel.guild);
+    const { text: logText, anchors } = await collectServerLogs(channel.guild);
     if (!logText) return;
 
     const logCount = logText.split("\n").filter((l) => l.trim()).length;
@@ -297,7 +297,12 @@ async function postScheduledNews(channel) {
     const style = getNewsStyle(channel.guild.id);
     const summaryPrompt =
       prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
-    const summary = await generateAiSummary(summaryPrompt, logText, null, summaryPrompt.model);
+    const summary = await generateAiSummary(
+      summaryPrompt,
+      logText,
+      null,
+      summaryPrompt.model,
+    );
     const mvp = await generateAiSummary(prompts.mvp, logText);
     const haiku = await generateAiSummary(prompts.haiku, logText);
 
@@ -317,6 +322,16 @@ async function postScheduledNews(channel) {
       { name: "今日のMVP発言…", value: mvp ?? "(MVP の生成に失敗しました)" },
       { name: "最後に一句…", value: haiku ?? "(俳句の生成に失敗しました)" },
     );
+
+    if (anchors?.length > 0) {
+      const linkText = anchors.map((a) => `[#${a.name}](${a.url})`).join("　");
+      embed.addFields({
+        name: "📌 ログへジャンプ",
+        value: linkText.substring(0, 1024),
+        inline: false,
+      });
+    }
+
     await channel.send({ embeds: [embed] });
   } catch (error) {
     console.error("Scheduled news error:", error);

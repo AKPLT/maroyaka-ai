@@ -63,11 +63,12 @@ async function handleSlashCommand(interaction) {
   );
 
   try {
-    const logText =
+    const logResult =
       interaction.commandName === "news"
         ? await collectServerLogs(interaction.guild, progress)
         : await collectChannelLogs(interaction.channel, progress);
 
+    const logText = logResult.text;
     if (!logText) {
       console.warn(
         `[cmd] /${interaction.commandName} ログ取得結果が空のため終了`,
@@ -109,6 +110,23 @@ async function handleSlashCommand(interaction) {
           : replyContent;
       embed.setDescription(safeContent);
     }
+
+    if (interaction.commandName === "news") {
+      const { anchors } = logResult;
+      if (anchors?.length > 0) {
+        const linkText = anchors
+          .map((a) => `[#${a.name}](${a.url})`)
+          .join("　");
+        embed.addFields({
+          name: "📌 ログへジャンプ",
+          value: linkText.substring(0, 1024),
+          inline: false,
+        });
+      }
+    } else if (logResult.anchorUrl) {
+      embed.setURL(logResult.anchorUrl);
+    }
+
     await interaction.editReply({ content: "", embeds: [embed] });
     console.log(
       `[cmd] /${interaction.commandName} 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,
@@ -137,7 +155,10 @@ async function handleSuggestTopic(interaction) {
   const start = Date.now();
   console.log(`[cmd] /suggesttopic 開始 user=${interaction.user.tag}`);
   try {
-    const logText = await collectChannelLogs(interaction.channel, progress);
+    const { text: logText } = await collectChannelLogs(
+      interaction.channel,
+      progress,
+    );
     if (!logText) {
       console.warn(`[cmd] /suggesttopic ログ取得結果が空のため終了`);
       return interaction.deleteReply();

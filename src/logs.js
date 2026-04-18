@@ -54,7 +54,7 @@ async function fetchAndCleanLogs(channel, cutoff) {
   console.log(
     `[logs] #${channel.name} 有効メッセージ=${validMessages.length}件`,
   );
-  return validMessages
+  const logs = validMessages
     .map((m) => {
       const member = memberMap.get(m.author.id) ?? m.member;
       const authorName =
@@ -74,6 +74,14 @@ async function fetchAndCleanLogs(channel, cutoff) {
       return text ? `[#${channel.name}][${time}] ${authorName}: ${text}` : null;
     })
     .filter((log) => log !== null);
+
+  // validMessages は新着順なので末尾が最古のメッセージ
+  const anchorId =
+    validMessages.length > 0
+      ? validMessages[validMessages.length - 1].id
+      : null;
+
+  return { logs, anchorId };
 }
 
 async function collectServerLogs(guild, onProgress = null) {
@@ -88,30 +96,40 @@ async function collectServerLogs(guild, onProgress = null) {
 
   let allLogs = [];
   let totalCount = 0;
+  const anchors = [];
   for (let i = 0; i < channels.length; i++) {
     const channel = channels[i];
     console.log(`取得中... #${channel.name}`);
     onProgress?.(
       `#${channel.name} を取得中ですっ... (${i + 1}/${channels.length}チャンネル, 計${totalCount}件)`,
     );
-    const logs = await fetchAndCleanLogs(channel, cutoff);
+    const { logs, anchorId } = await fetchAndCleanLogs(channel, cutoff);
     totalCount += logs.length;
     allLogs.push(...logs);
+    if (anchorId) {
+      anchors.push({
+        name: channel.name,
+        url: `https://discord.com/channels/${guild.id}/${channel.id}/${anchorId}`,
+      });
+    }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   console.log(
     `[logs] サーバー全体 合計=${totalCount}件 チャンネル数=${channels.length}`,
   );
-  return allLogs.reverse().join("\n");
+  return { text: allLogs.reverse().join("\n"), anchors };
 }
 
 async function collectChannelLogs(channel, onProgress = null) {
   const cutoff = Date.now() - summaryWindowMs;
   onProgress?.(`#${channel.name} のメッセージを取得中ですっ...`);
-  const logs = await fetchAndCleanLogs(channel, cutoff);
+  const { logs, anchorId } = await fetchAndCleanLogs(channel, cutoff);
   onProgress?.(`#${channel.name} から ${logs.length}件 取得しましたっ`);
-  return logs.reverse().join("\n");
+  const anchorUrl = anchorId
+    ? `https://discord.com/channels/${channel.guild.id}/${channel.id}/${anchorId}`
+    : null;
+  return { text: logs.reverse().join("\n"), anchorUrl };
 }
 
 module.exports = { fetchAndCleanLogs, collectServerLogs, collectChannelLogs };
