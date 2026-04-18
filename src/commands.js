@@ -92,6 +92,12 @@ const commands = [
         .addChoices(...STYLE_CHOICES),
     ),
   new SlashCommandBuilder()
+    .setName("startreading")
+    .setDescription("VCに入ってこのチャンネルのメッセージを読み上げます"),
+  new SlashCommandBuilder()
+    .setName("stopreading")
+    .setDescription("読み上げを停止してVCから退出します"),
+  new SlashCommandBuilder()
     .setName("help")
     .setDescription("使えるコマンドの一覧を表示します"),
 ].map((command) => command.toJSON());

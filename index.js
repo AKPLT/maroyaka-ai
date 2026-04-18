@@ -12,6 +12,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
@@ -62,6 +63,10 @@ client.on("interactionCreate", async (interaction) => {
     return handlers.handleGetNewsChannel(interaction);
   if (commandName === "suggesttopic")
     return handlers.handleSuggestTopic(interaction);
+  if (commandName === "startreading")
+    return handlers.handleStartReading(interaction);
+  if (commandName === "stopreading")
+    return handlers.handleStopReading(interaction);
   if (commandName === "help") return handlers.handleHelp(interaction);
   if (handlers.AI_COMMANDS.includes(commandName))
     return handlers.handleSlashCommand(interaction);
