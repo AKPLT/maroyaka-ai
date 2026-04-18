@@ -315,7 +315,7 @@ const bustInCooldowns = new Map(); // channelId -> timestamp
 const BUST_IN_WINDOW_MS = 60 * 1000; // 60秒以内に
 const BUST_IN_THRESHOLD = 10; // N件以上で検知
 const BUST_IN_COOLDOWN_MS = 60 * 60 * 1000; // 投稿後1時間クールダウン
-const BUST_IN_LOG_COUNT = 50; // 分析するメッセージ数
+const BUST_IN_LOG_COUNT = 15; // 分析するメッセージ数
 
 async function checkAndBustIn(message, botId) {
   const channelId = message.channelId;
@@ -341,19 +341,27 @@ async function checkAndBustIn(message, botId) {
     const fetched = await message.channel.messages.fetch({
       limit: BUST_IN_LOG_COUNT,
     });
-    const logLines = [...fetched.values()]
+    const contextCutoff = Date.now() - BUST_IN_WINDOW_MS * 3;
+    const history = [...fetched.values()]
       .reverse()
-      .filter((m) => !m.author.bot && m.content.trim())
+      .filter(
+        (m) =>
+          !m.author.bot &&
+          m.content.trim() &&
+          m.createdTimestamp > contextCutoff,
+      )
       .map((m) => {
         const name =
           m.member?.nickname ?? m.member?.displayName ?? m.author.username;
-        return `${name}: ${m.content}`;
-      })
-      .join("\n");
+        return { role: "user", content: `${name}: ${m.content}` };
+      });
 
-    if (!logLines) return;
+    if (history.length === 0) return;
 
-    const reply = await generateAiSummary(prompts.bustIn, logLines);
+    const reply = await generateConversationReply(
+      prompts.bustIn.system,
+      history,
+    );
     if (!reply) return;
 
     await message.channel
