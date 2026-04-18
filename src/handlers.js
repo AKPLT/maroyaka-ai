@@ -18,6 +18,20 @@ const AI_COMMANDS = [
 
 let isProcessing = false;
 
+function parseTopicsToFields(text) {
+  const lines = text.split("\n").filter((l) => l.trim());
+  const fields = [];
+  for (const line of lines) {
+    const match = line.match(/^\*\*(.+?)\*\*\s+(.+)$/);
+    if (match) {
+      const value =
+        match[2].length > 1024 ? match[2].substring(0, 1021) + "..." : match[2];
+      fields.push({ name: match[1].substring(0, 256), value, inline: false });
+    }
+  }
+  return fields.length > 0 ? fields.slice(0, 25) : null;
+}
+
 const BUSY_MESSAGE =
   "今ほかのコマンドを処理中ですっ！もう少しだけ待ってくださいねっ";
 
@@ -84,18 +98,23 @@ async function handleSlashCommand(interaction) {
       modelName,
     );
 
-    const safeContent =
-      replyContent.length > 4096
-        ? replyContent.substring(0, 4093) + "..."
-        : replyContent;
-
     const embed = new EmbedBuilder()
       .setTitle(
         getEmbedTitle(interaction.commandName, interaction.channel.name),
       )
-      .setDescription(safeContent)
       .setColor(0xf5c2e7)
       .setTimestamp();
+
+    const fields = parseTopicsToFields(replyContent);
+    if (fields) {
+      embed.addFields(fields);
+    } else {
+      const safeContent =
+        replyContent.length > 4096
+          ? replyContent.substring(0, 4093) + "..."
+          : replyContent;
+      embed.setDescription(safeContent);
+    }
     await interaction.editReply({ content: "", embeds: [embed] });
     console.log(`[cmd] /${interaction.commandName} 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`);
   } catch (error) {
@@ -353,6 +372,7 @@ async function handleMessageCreate(message, botId) {
 
 module.exports = {
   AI_COMMANDS,
+  parseTopicsToFields,
   handleSlashCommand,
   handleSuggestTopic,
   handleSetNewsChannel,

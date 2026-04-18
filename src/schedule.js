@@ -5,6 +5,7 @@ const { EmbedBuilder } = require("discord.js");
 const prompts = require("./prompts");
 const { collectServerLogs } = require("./logs");
 const { generateAiSummary } = require("./ai");
+const { parseTopicsToFields } = require("./handlers");
 
 const ROOT = path.join(__dirname, "..");
 const scheduleConfigPath = path.join(ROOT, "scheduleConfig.json");
@@ -288,13 +289,20 @@ async function postScheduledNews(channel) {
 
     const embed = new EmbedBuilder()
       .setTitle("24時間のニュースですっ")
-      .setDescription(summary)
-      .addFields(
-        { name: "今日のMVP発言…", value: mvp ?? "(MVP の生成に失敗しました)" },
-        { name: "最後に一句…", value: haiku ?? "(俳句の生成に失敗しました)" },
-      )
       .setColor(0xf5c2e7)
       .setTimestamp();
+
+    const summaryFields = summary ? parseTopicsToFields(summary) : null;
+    if (summaryFields) {
+      embed.addFields(summaryFields);
+    } else if (summary) {
+      embed.setDescription(summary);
+    }
+
+    embed.addFields(
+      { name: "今日のMVP発言…", value: mvp ?? "(MVP の生成に失敗しました)" },
+      { name: "最後に一句…", value: haiku ?? "(俳句の生成に失敗しました)" },
+    );
     await channel.send({ embeds: [embed] });
   } catch (error) {
     console.error("Scheduled news error:", error);
