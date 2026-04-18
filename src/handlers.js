@@ -103,17 +103,15 @@ async function handleSlashCommand(interaction) {
       .setColor(0xf5c2e7)
       .setTimestamp();
 
-    const useSpoiler = ["news", "summary"].includes(interaction.commandName);
-    const spoiler = (text) => useSpoiler ? `||${text}||` : text;
     const fields = parseTopicsToFields(replyContent);
     if (fields) {
-      embed.addFields(fields.map((f) => ({ ...f, value: spoiler(f.value) })));
+      embed.addFields(fields);
     } else {
       const safeContent =
         replyContent.length > 4096
           ? replyContent.substring(0, 4093) + "..."
           : replyContent;
-      embed.setDescription(spoiler(safeContent));
+      embed.setDescription(safeContent);
     }
     await interaction.editReply({ content: "", embeds: [embed] });
     console.log(`[cmd] /${interaction.commandName} 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`);

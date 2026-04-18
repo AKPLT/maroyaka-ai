@@ -309,10 +309,9 @@ async function postScheduledNews(channel) {
       embed.setDescription(summary);
     }
 
-    const spoiler = (text) => `||${text}||`;
     embed.addFields(
-      { name: "今日のMVP発言…（タップで表示）", value: spoiler(mvp ?? "(MVP の生成に失敗しました)") },
-      { name: "最後に一句…（タップで表示）", value: spoiler(haiku ?? "(俳句の生成に失敗しました)") },
+      { name: "今日のMVP発言…", value: mvp ?? "(MVP の生成に失敗しました)" },
+      { name: "最後に一句…", value: haiku ?? "(俳句の生成に失敗しました)" },
     );
     await channel.send({ embeds: [embed] });
   } catch (error) {
