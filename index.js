@@ -3,7 +3,6 @@ const { Client, GatewayIntentBits, REST, Routes } = require("discord.js");
 const commands = require("./src/commands");
 const schedule = require("./src/schedule");
 const handlers = require("./src/handlers");
-const voice = require("./src/voice");
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
@@ -13,7 +12,6 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
@@ -64,10 +62,6 @@ client.on("interactionCreate", async (interaction) => {
     return handlers.handleGetNewsChannel(interaction);
   if (commandName === "suggesttopic")
     return handlers.handleSuggestTopic(interaction);
-  if (commandName === "startreading")
-    return handlers.handleStartReading(interaction);
-  if (commandName === "stopreading")
-    return handlers.handleStopReading(interaction);
   if (commandName === "help") return handlers.handleHelp(interaction);
   if (handlers.AI_COMMANDS.includes(commandName))
     return handlers.handleSlashCommand(interaction);
@@ -77,8 +71,5 @@ client.on("messageCreate", (message) =>
   handlers.handleMessageCreate(message, client.user.id),
 );
 
-client.on("voiceStateUpdate", (oldState) => {
-  if (oldState.channelId) voice.checkAndLeaveIfEmpty(oldState.guild);
-});
 
 client.login(token);

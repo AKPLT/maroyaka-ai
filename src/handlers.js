@@ -3,7 +3,6 @@ const prompts = require("./prompts");
 const { collectServerLogs, collectChannelLogs } = require("./logs");
 const { generateAiSummary, generateConversationReply, modelNameCommon, modelNameHaiku } = require("./ai");
 const schedule = require("./schedule");
-const voice = require("./voice");
 
 const AI_COMMANDS = [
   "news",
@@ -240,13 +239,6 @@ async function handleHelp(interaction) {
         ].join("\n"),
       },
       {
-        name: "読み上げコマンド",
-        value: [
-          "`/startreading` VCに入ってこのチャンネルを読み上げ開始",
-          "`/stopreading` 読み上げ停止・VC退出",
-        ].join("\n"),
-      },
-      {
         name: "設定コマンド",
         value: [
           "`/setnewschannel` 定期配信先チャンネルを設定",
@@ -329,7 +321,6 @@ async function buildConversationHistory(message, botId) {
 
 async function handleMessageCreate(message, botId) {
   if (message.author.bot) return;
-  voice.enqueueMessage(message);
 
   // ボットへのリプライ → 会話継続
   if (message.reference?.messageId) {
@@ -379,35 +370,6 @@ async function handleMessageCreate(message, botId) {
   }
 }
 
-async function handleStartReading(interaction) {
-  const voiceChannel = interaction.member?.voice?.channel;
-  if (!voiceChannel) {
-    return interaction.reply({
-      content: "先にVCに入ってからコマンドを使ってくださいっ！",
-      ephemeral: true,
-    });
-  }
-  voice.startReading(voiceChannel, interaction.channelId);
-  return interaction.reply({
-    content: `${voiceChannel} に入ってこのチャンネルの読み上げを開始しましたっ！`,
-    ephemeral: true,
-  });
-}
-
-async function handleStopReading(interaction) {
-  const stopped = voice.stopReading(interaction.guildId);
-  if (!stopped) {
-    return interaction.reply({
-      content: "現在読み上げ中ではありませんっ。",
-      ephemeral: true,
-    });
-  }
-  return interaction.reply({
-    content: "読み上げを停止してVCから退出しましたっ。",
-    ephemeral: true,
-  });
-}
-
 module.exports = {
   AI_COMMANDS,
   parseTopicsToFields,
@@ -418,7 +380,5 @@ module.exports = {
   handleSetNewsTime,
   handleSetNewsStyle,
   handleHelp,
-  handleStartReading,
-  handleStopReading,
   handleMessageCreate,
 };
