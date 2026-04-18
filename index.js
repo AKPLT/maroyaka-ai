@@ -64,6 +64,10 @@ client.on("interactionCreate", async (interaction) => {
     return handlers.handleSuggestTopic(interaction);
   if (commandName === "setnewsenabled")
     return handlers.handleToggleNews(interaction);
+  if (commandName === "excludechannel")
+    return handlers.handleExcludeChannel(interaction);
+  if (commandName === "includechannel")
+    return handlers.handleIncludeChannel(interaction);
   if (commandName === "help") return handlers.handleHelp(interaction);
   if (handlers.AI_COMMANDS.includes(commandName))
     return handlers.handleSlashCommand(interaction);

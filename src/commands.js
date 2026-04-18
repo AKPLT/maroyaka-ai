@@ -94,6 +94,24 @@ const commands = [
         .setRequired(true),
     ),
   new SlashCommandBuilder()
+    .setName("excludechannel")
+    .setDescription("監視・反応の対象からチャンネルを除外します")
+    .addChannelOption((option) =>
+      option
+        .setName("channel")
+        .setDescription("除外するチャンネル")
+        .setRequired(true),
+    ),
+  new SlashCommandBuilder()
+    .setName("includechannel")
+    .setDescription("監視・反応の除外を解除します")
+    .addChannelOption((option) =>
+      option
+        .setName("channel")
+        .setDescription("除外を解除するチャンネル")
+        .setRequired(true),
+    ),
+  new SlashCommandBuilder()
     .setName("help")
     .setDescription("使えるコマンドの一覧を表示します"),
 ].map((command) => command.toJSON());

@@ -264,6 +264,8 @@ async function handleHelp(interaction) {
           "`/setnewsstyle` 定期配信の要約スタイルを設定",
           "`/getnewschannel` 現在の定期配信設定を確認",
           "`/setnewsenabled` 定期配信のオン/オフを設定",
+          "`/excludechannel` 監視・反応の対象からチャンネルを除外",
+          "`/includechannel` 除外したチャンネルを監視対象に戻す",
         ].join("\n"),
       },
     )
@@ -311,9 +313,9 @@ const MAX_CONVERSATION_DEPTH = 10;
 const bustInTimestamps = new Map(); // channelId -> timestamp[]
 const bustInCooldowns = new Map(); // channelId -> timestamp
 const BUST_IN_WINDOW_MS = 60 * 1000; // 60秒以内に
-const BUST_IN_THRESHOLD = 5; // N件以上で検知
+const BUST_IN_THRESHOLD = 10; // N件以上で検知
 const BUST_IN_COOLDOWN_MS = 60 * 60 * 1000; // 投稿後1時間クールダウン
-const BUST_IN_LOG_COUNT = 15; // 分析するメッセージ数
+const BUST_IN_LOG_COUNT = 50; // 分析するメッセージ数
 
 async function checkAndBustIn(message, botId) {
   const channelId = message.channelId;
@@ -392,8 +394,34 @@ async function buildConversationHistory(message, botId) {
   return messages;
 }
 
+async function handleExcludeChannel(interaction) {
+  const channel = interaction.options.getChannel("channel");
+  const added = schedule.addExcludedChannel(interaction.guildId, channel.id);
+  return interaction.reply({
+    content: added
+      ? `${channel} を監視・反応の対象から除外しましたっ。`
+      : `${channel} はすでに除外されていますっ。`,
+    ephemeral: true,
+  });
+}
+
+async function handleIncludeChannel(interaction) {
+  const channel = interaction.options.getChannel("channel");
+  const removed = schedule.removeExcludedChannel(
+    interaction.guildId,
+    channel.id,
+  );
+  return interaction.reply({
+    content: removed
+      ? `${channel} の除外を解除しましたっ。`
+      : `${channel} は除外リストにありませんっ。`,
+    ephemeral: true,
+  });
+}
+
 async function handleMessageCreate(message, botId) {
   if (message.author.bot) return;
+  if (schedule.isChannelExcluded(message.guildId, message.channelId)) return;
 
   // ボットへのリプライ → 会話継続
   if (message.reference?.messageId) {
@@ -476,4 +504,6 @@ module.exports = {
   handleToggleNews,
   handleHelp,
   handleMessageCreate,
+  handleExcludeChannel,
+  handleIncludeChannel,
 };

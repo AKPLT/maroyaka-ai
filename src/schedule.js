@@ -128,6 +128,30 @@ function setNewsStyle(guildId, style) {
   return setGuildConfig(guildId, { newsStyle: style });
 }
 
+function getExcludedChannelIds(guildId) {
+  return getGuildConfig(guildId).excludedChannelIds ?? [];
+}
+
+function isChannelExcluded(guildId, channelId) {
+  return getExcludedChannelIds(guildId).includes(channelId);
+}
+
+function addExcludedChannel(guildId, channelId) {
+  const current = getExcludedChannelIds(guildId);
+  if (current.includes(channelId)) return false;
+  setGuildConfig(guildId, { excludedChannelIds: [...current, channelId] });
+  return true;
+}
+
+function removeExcludedChannel(guildId, channelId) {
+  const current = getExcludedChannelIds(guildId);
+  if (!current.includes(channelId)) return false;
+  setGuildConfig(guildId, {
+    excludedChannelIds: current.filter((id) => id !== channelId),
+  });
+  return true;
+}
+
 function getScheduleTimeString(guildId) {
   const { scheduleHour, scheduleMinute } = getScheduleTime(guildId);
   return `${String(scheduleHour).padStart(2, "0")}:${String(scheduleMinute).padStart(2, "0")}`;
@@ -345,4 +369,8 @@ module.exports = {
   setNewsStyle,
   isNewsEnabled,
   setNewsEnabled,
+  isChannelExcluded,
+  addExcludedChannel,
+  removeExcludedChannel,
+  getExcludedChannelIds,
 };
