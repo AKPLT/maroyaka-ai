@@ -176,6 +176,7 @@ async function handleSuggestTopic(interaction) {
 }
 
 async function handleSetNewsChannel(interaction) {
+  const start = Date.now();
   const channel = interaction.options.getChannel("channel");
   if (!channel || !channel.isTextBased() || channel.isThread()) {
     return interaction.reply({
@@ -184,6 +185,9 @@ async function handleSetNewsChannel(interaction) {
     });
   }
   schedule.setScheduledChannelId(interaction.guildId, channel.id);
+  console.log(
+    `[cmd] /setnewschannel user=${interaction.user.tag} channel=${channel.name} (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+  );
   return interaction.reply({
     content: `定期配信先を ${channel} に設定しました。`,
     ephemeral: true,
@@ -191,6 +195,7 @@ async function handleSetNewsChannel(interaction) {
 }
 
 async function handleGetNewsChannel(interaction) {
+  const start = Date.now();
   const styleName =
     prompts.STYLE_CHOICES.find(
       (c) => c.value === schedule.getNewsStyle(interaction.guildId),
@@ -198,6 +203,9 @@ async function handleGetNewsChannel(interaction) {
   const enabledStatus = schedule.isNewsEnabled(interaction.guildId)
     ? "オン"
     : "オフ";
+  console.log(
+    `[cmd] /getnewschannel user=${interaction.user.tag} (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+  );
   return interaction.reply({
     content: `現在の定期配信先は ${schedule.getScheduledChannelMention(interaction.guildId)}、配信時刻は ${schedule.getScheduleTimeString(interaction.guildId)}、スタイルは「${styleName}」、定期配信は **${enabledStatus}** です。`,
     ephemeral: true,
@@ -205,9 +213,13 @@ async function handleGetNewsChannel(interaction) {
 }
 
 async function handleToggleNews(interaction) {
+  const start = Date.now();
   const enabled = interaction.options.getBoolean("enabled");
   schedule.setNewsEnabled(interaction.guildId, enabled);
   const status = enabled ? "オン" : "オフ";
+  console.log(
+    `[cmd] /setnewsenabled user=${interaction.user.tag} enabled=${enabled} (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+  );
   return interaction.reply({
     content: `定期配信を **${status}** にしました。`,
     ephemeral: true,
@@ -215,10 +227,14 @@ async function handleToggleNews(interaction) {
 }
 
 async function handleSetNewsStyle(interaction) {
+  const start = Date.now();
   const style = interaction.options.getString("style");
   schedule.setNewsStyle(interaction.guildId, style);
   const styleName =
     prompts.STYLE_CHOICES.find((c) => c.value === style)?.name ?? style;
+  console.log(
+    `[cmd] /setnewsstyle user=${interaction.user.tag} style=${style} (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+  );
   return interaction.reply({
     content: `定期配信のスタイルを「${styleName}」に設定しました。`,
     ephemeral: true,
@@ -226,6 +242,7 @@ async function handleSetNewsStyle(interaction) {
 }
 
 async function handleHelp(interaction) {
+  const start = Date.now();
   const embed = new EmbedBuilder()
     .setTitle("まろやかAI コマンド一覧ですっ")
     .addFields(
@@ -271,10 +288,14 @@ async function handleHelp(interaction) {
     )
     .setColor(0xf5c2e7)
     .setTimestamp();
+  console.log(
+    `[cmd] /help user=${interaction.user.tag} (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+  );
   return interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
 async function handleSetNewsTime(interaction) {
+  const start = Date.now();
   const hour = interaction.options.getInteger("hour");
   const minute = interaction.options.getInteger("minute");
 
@@ -293,6 +314,9 @@ async function handleSetNewsTime(interaction) {
     ? ""
     : "\nまだ配信先が設定されていないため、定期配信は実行されません。";
 
+  console.log(
+    `[cmd] /setnewstime user=${interaction.user.tag} time=${timeStr} (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+  );
   return interaction.reply({
     content: `定期配信時刻を ${timeStr} に設定しました。${notice}`,
     ephemeral: true,
@@ -340,8 +364,12 @@ async function buildConversationHistory(message, botId) {
 }
 
 async function handleExcludeChannel(interaction) {
+  const start = Date.now();
   const channel = interaction.options.getChannel("channel");
   const added = schedule.addExcludedChannel(interaction.guildId, channel.id);
+  console.log(
+    `[cmd] /excludechannel user=${interaction.user.tag} channel=${channel.name} added=${added} (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+  );
   return interaction.reply({
     content: added
       ? `${channel} を監視・反応の対象から除外しましたっ。`
@@ -351,10 +379,14 @@ async function handleExcludeChannel(interaction) {
 }
 
 async function handleIncludeChannel(interaction) {
+  const start = Date.now();
   const channel = interaction.options.getChannel("channel");
   const removed = schedule.removeExcludedChannel(
     interaction.guildId,
     channel.id,
+  );
+  console.log(
+    `[cmd] /includechannel user=${interaction.user.tag} channel=${channel.name} removed=${removed} (${((Date.now() - start) / 1000).toFixed(1)}s)`,
   );
   return interaction.reply({
     content: removed
