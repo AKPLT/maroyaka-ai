@@ -329,7 +329,7 @@ async function handleMessageCreate(message, botId) {
     return;
   }
 
-  // 「まろやかAI」またはメンション → 監視セッション開始＋Ollamaで判定
+  // 「まろやかAI」またはメンション → 必ず反応（空リプ）＋監視セッション開始
   const mentionsBot = message.mentions.users.has(botId);
   if (!mentionsBot && !message.content.includes("まろやかAI")) return;
 
@@ -338,25 +338,31 @@ async function handleMessageCreate(message, botId) {
   if (now - lastTime < MAROYAKA_COOLDOWN_MS) return;
   maroyakaCooldowns.set(message.channelId, now);
 
-  const initialContext = [`${message.author.displayName}: ${message.content}`];
+  try {
+    const reply = await generateAiSummary(
+      prompts.maroyakaReaction,
+      message.content,
+    );
+    await message.channel
+      .send(reply || MAROYAKA_FALLBACK_RESPONSES[0])
+      .catch(() => {});
+  } catch {
+    const fallback =
+      MAROYAKA_FALLBACK_RESPONSES[
+        Math.floor(Math.random() * MAROYAKA_FALLBACK_RESPONSES.length)
+      ];
+    await message.channel.send(fallback).catch(() => {});
+  }
+
+  // 監視セッション開始（以降の投稿はOllama判定でたまに割り込む）
   monitoringSessions.set(message.channelId, {
     expiresAt: now + MONITORING_DURATION_MS,
-    context: initialContext,
+    context: [`${message.author.displayName}: ${message.content}`],
   });
   setTimeout(
     () => monitoringSessions.delete(message.channelId),
     MONITORING_DURATION_MS,
   );
-
-  try {
-    const response = await generateAiSummary(
-      prompts.monitoringReaction,
-      initialContext.join("\n"),
-    );
-    if (response && !response.trimStart().startsWith("SKIP")) {
-      await message.channel.send(response).catch(() => {});
-    }
-  } catch {}
 }
 
 module.exports = {
