@@ -7,7 +7,7 @@ const {
   VoiceConnectionStatus,
   entersState,
 } = require("@discordjs/voice");
-const { Readable } = require("stream");
+const { PassThrough } = require("stream");
 
 const VOICEVOX_URL = process.env.VOICEVOX_URL ?? "http://localhost:50021";
 const VOICEVOX_SPEAKER = parseInt(process.env.VOICEVOX_SPEAKER ?? "1", 10);
@@ -58,7 +58,9 @@ async function processQueue(guildId) {
 
   try {
     const buffer = await synthesize(text);
-    const resource = createAudioResource(Readable.from(buffer), {
+    const stream = new PassThrough();
+    stream.end(buffer);
+    const resource = createAudioResource(stream, {
       inputType: StreamType.Arbitrary,
     });
     state.player.play(resource);
