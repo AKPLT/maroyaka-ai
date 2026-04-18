@@ -82,7 +82,6 @@ async function handleSlashCommand(interaction) {
 
     const modelName =
       interaction.commandName === "haiku" ? modelNameHaiku : modelNameCommon;
-    const validate = interaction.options.getBoolean("validate") ?? false;
     let promptConfig = prompts[interaction.commandName];
     if (["news", "summary"].includes(interaction.commandName)) {
       const style = interaction.options.getString("style") ?? "maroyaka";
@@ -93,7 +92,6 @@ async function handleSlashCommand(interaction) {
     const replyContent = await generateAiSummary(
       promptConfig,
       logText,
-      validate,
       progress,
       modelName,
     );
@@ -144,11 +142,9 @@ async function handleSuggestTopic(interaction) {
       return interaction.deleteReply();
     }
 
-    const validate = interaction.options.getBoolean("validate") ?? false;
     const suggestion = await generateAiSummary(
       prompts.topic,
       logText,
-      validate,
       progress,
     );
     if (!suggestion) return interaction.deleteReply();
@@ -245,7 +241,6 @@ async function handleHelp(interaction) {
         name: "共通オプション（AIコマンド）",
         value: [
           "`private` 自分にだけ見えるメッセージで返す",
-          "`validate` 出力を検証して再生成（True: 低速・高品質）",
           "`style` 要約スタイルを選択（`/news` `/summary` のみ）",
         ].join("\n"),
       },

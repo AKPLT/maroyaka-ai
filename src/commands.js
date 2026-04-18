@@ -9,17 +9,11 @@ const privateOpt = boolOption(
   "private",
   "自分にだけ見えるメッセージで返します",
 );
-const validateOpt = boolOption(
-  "validate",
-  "出力を検証し問題があれば再生成します（True: 低速・高品質 / False: 高速）",
-);
-
 function aiCommand(name, description) {
   return new SlashCommandBuilder()
     .setName(name)
     .setDescription(description)
-    .addBooleanOption(privateOpt)
-    .addBooleanOption(validateOpt);
+    .addBooleanOption(privateOpt);
 }
 
 function aiCommandWithStyle(name, description) {
@@ -32,8 +26,7 @@ function aiCommandWithStyle(name, description) {
         .setDescription("要約のスタイル")
         .addChoices(...STYLE_CHOICES),
     )
-    .addBooleanOption(privateOpt)
-    .addBooleanOption(validateOpt);
+    .addBooleanOption(privateOpt);
 }
 
 const commands = [
