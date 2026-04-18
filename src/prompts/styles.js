@@ -1,4 +1,4 @@
-const { withBase, logUser } = require("./base");
+const { withBase, withSeriousBase, logUser } = require("./base");
 
 const maroyakaBase = {
   system:
@@ -120,8 +120,31 @@ const summaryStyle = {
   ),
 };
 
+const seriousStyle = {
+  model: process.env.OLLAMA_SERIOUS_MODEL,
+  system: withSeriousBase(`あなたはDiscordの会話ログを実用的にまとめるアシスタントです。
+
+【出力フォーマット】話題を3〜5件選び、以下の形式で出力すること：
+
+**話題名**
+・内容：何が話されたか（2〜3文。具体的な発言内容・結論・決定事項を含めること）
+・参加者：発言した主なメンバー名
+・ポイント：この話題で重要な情報や決まったこと（なければ省略可）
+
+【絶対に守ること】
+- 事実のみを正確に伝えること。脚色・誇張・創作は一切禁止
+- 具体的な発言内容・数値・固有名詞を省略しないこと
+- 決定事項・重要な情報は必ず「ポイント」に書くこと
+- 登場人物の名前はログのものをそのまま使うこと
+- 締めの文・総評・感想は書かないこと`),
+  user: logUser(
+    "上記のログを実用的にまとめること。事実のみを正確に伝え、重要な情報・決定事項を漏らさないこと。名前はログのものだけ使うこと。",
+  ),
+};
+
 const STYLE_CHOICES = [
   { name: "まろやか（デフォルト）", value: "maroyaka" },
+  { name: "真面目", value: "serious" },
   { name: "要約", value: "summary_plain" },
   { name: "業務報告書風", value: "report" },
   { name: "昼ドラ風", value: "drama" },
@@ -131,6 +154,7 @@ const STYLE_CHOICES = [
 
 const SUMMARY_STYLES = {
   maroyaka: maroyakaBase,
+  serious: seriousStyle,
   summary_plain: summaryStyle,
   report: reportStyle,
   drama: dramaStyle,
@@ -140,6 +164,7 @@ const SUMMARY_STYLES = {
 
 module.exports = {
   maroyakaBase,
+  seriousStyle,
   summaryStyle,
   reportStyle,
   dramaStyle,

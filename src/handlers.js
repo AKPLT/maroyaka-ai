@@ -75,13 +75,14 @@ async function handleSlashCommand(interaction) {
       return interaction.deleteReply();
     }
 
-    const modelName =
+    let modelName =
       interaction.commandName === "haiku" ? modelNameHaiku : modelNameCommon;
     let promptConfig = prompts[interaction.commandName];
     if (["news", "summary"].includes(interaction.commandName)) {
       const style = interaction.options.getString("style") ?? "maroyaka";
       promptConfig =
         prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
+      if (promptConfig.model) modelName = promptConfig.model;
       console.log(`[cmd] /${interaction.commandName} スタイル=${style}`);
     }
     const replyContent = await generateAiSummary(

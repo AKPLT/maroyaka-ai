@@ -297,7 +297,7 @@ async function postScheduledNews(channel) {
     const style = getNewsStyle(channel.guild.id);
     const summaryPrompt =
       prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
-    const summary = await generateAiSummary(summaryPrompt, logText);
+    const summary = await generateAiSummary(summaryPrompt, logText, null, summaryPrompt.model);
     const mvp = await generateAiSummary(prompts.mvp, logText);
     const haiku = await generateAiSummary(prompts.haiku, logText);
 
