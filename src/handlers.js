@@ -111,25 +111,6 @@ async function handleSlashCommand(interaction) {
       embed.setDescription(safeContent);
     }
 
-    if (interaction.commandName === "news") {
-      const { anchors } = logResult;
-      if (anchors?.length > 0) {
-        let linkText = "";
-        for (const a of anchors) {
-          const part = (linkText ? "　" : "") + `[#${a.name}](${a.url})`;
-          if (linkText.length + part.length > 1024) break;
-          linkText += part;
-        }
-        embed.addFields({
-          name: "ログ",
-          value: linkText,
-          inline: false,
-        });
-      }
-    } else if (logResult.anchorUrl) {
-      embed.setURL(logResult.anchorUrl);
-    }
-
     await interaction.editReply({ content: "", embeds: [embed] });
     console.log(
       `[cmd] /${interaction.commandName} 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,

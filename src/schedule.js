@@ -323,15 +323,6 @@ async function postScheduledNews(channel) {
       { name: "最後に一句…", value: haiku ?? "(俳句の生成に失敗しました)" },
     );
 
-    if (anchors?.length > 0) {
-      const linkText = anchors.map((a) => `[#${a.name}](${a.url})`).join("　");
-      embed.addFields({
-        name: "📌 ログへジャンプ",
-        value: linkText.substring(0, 1024),
-        inline: false,
-      });
-    }
-
     await channel.send({ embeds: [embed] });
   } catch (error) {
     console.error("Scheduled news error:", error);
