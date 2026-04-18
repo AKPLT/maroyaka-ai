@@ -225,7 +225,9 @@ function scheduleNextAppearance(guildId) {
   const days = 25 + Math.floor(Math.random() * 11); // 25〜35日後
   const next = Date.now() + days * 24 * 60 * 60 * 1000;
   setGuildConfig(guildId, { nextAppearanceTimestamp: next });
-  console.log(`次回のまろやかAI参上: ${days}日後 (${new Date(next).toLocaleDateString("ja-JP")})`);
+  console.log(
+    `次回のまろやかAI参上: ${days}日後 (${new Date(next).toLocaleDateString("ja-JP")})`,
+  );
 }
 
 async function postAppearance(channel) {
@@ -285,7 +287,9 @@ async function postScheduledNews(channel) {
 
     const logCount = logText.split("\n").filter((l) => l.trim()).length;
     if (logCount < MIN_LOGS_FOR_NEWS) {
-      console.log(`投稿数が少ないため定期ニュースをスキップ (${logCount}件 < ${MIN_LOGS_FOR_NEWS}件)`);
+      console.log(
+        `投稿数が少ないため定期ニュースをスキップ (${logCount}件 < ${MIN_LOGS_FOR_NEWS}件)`,
+      );
       return;
     }
 

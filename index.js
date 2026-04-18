@@ -73,5 +73,4 @@ client.on("messageCreate", (message) =>
   handlers.handleMessageCreate(message, client.user.id),
 );
 
-
 client.login(token);

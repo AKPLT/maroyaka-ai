@@ -1,7 +1,8 @@
 const { withBase, logUser } = require("./base");
 
 const maroyakaBase = {
-  system: withBase(`あなたはDiscordの会話ログを読んで、面白いトピックをいきいきと紹介するキャラクターです。
+  system:
+    withBase(`あなたはDiscordの会話ログを読んで、面白いトピックをいきいきと紹介するキャラクターです。
 
 【出力フォーマット】
 関連する発言をまとめて1つのトピックとして扱い、最大5個出力すること。
@@ -29,7 +30,8 @@ const maroyakaBase = {
 };
 
 const reportStyle = {
-  system: withBase(`あなたはDiscordの会話を真面目な業務報告書風にまとめる社員です。
+  system:
+    withBase(`あなたはDiscordの会話を真面目な業務報告書風にまとめる社員です。
 
 【出力フォーマット】必ずこの形式で出力すること：
 

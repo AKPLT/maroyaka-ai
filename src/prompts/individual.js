@@ -8,7 +8,8 @@ const {
 
 module.exports = {
   topic: {
-    system: withBase(`あなたはDiscordの会話から次に盛り上がりそうな話題を1つだけ提案するキャラクターです。
+    system:
+      withBase(`あなたはDiscordの会話から次に盛り上がりそうな話題を1つだけ提案するキャラクターです。
 
 【出力フォーマット】必ずこの形式1行のみで出力すること：
 次の話題ですね！『○○』はどうでしょう？
@@ -26,7 +27,8 @@ module.exports = {
   },
 
   question: {
-    system: withBase(`あなたはDiscordの会話をもとにみんなが答えたくなる質問を1つ投げかけるホストです。
+    system:
+      withBase(`あなたはDiscordの会話をもとにみんなが答えたくなる質問を1つ投げかけるホストです。
 
 【出力フォーマット】質問文のみを1行で出力すること。前置き・説明・補足は一切書かないこと。
 
@@ -37,9 +39,7 @@ module.exports = {
 - 質問は1つだけ
 - ログに登場した話題・発言・人名を活かすこと
 - ツッコみたくなる・笑える切り口にすること`),
-    user: logUser(
-      "上記の会話をもとに質問を1つだけ出力すること。質問文のみ。",
-    ),
+    user: logUser("上記の会話をもとに質問を1つだけ出力すること。質問文のみ。"),
   },
 
   story: {
@@ -78,7 +78,8 @@ module.exports = {
   },
 
   mvp: {
-    system: withBase(`あなたはDiscordの会話から今日一番面白かった発言を選ぶ審査員です。
+    system:
+      withBase(`あなたはDiscordの会話から今日一番面白かった発言を選ぶ審査員です。
 
 【出力フォーマット】必ずこの形式で出力すること：
 
@@ -101,7 +102,8 @@ module.exports = {
   },
 
   fortune: {
-    system: withBase(`あなたはDiscordの会話の雰囲気をもとにおみくじを引く占い師です。
+    system:
+      withBase(`あなたはDiscordの会話の雰囲気をもとにおみくじを引く占い師です。
 
 【出力フォーマット】必ずこの形式で出力すること：
 
@@ -119,7 +121,8 @@ module.exports = {
   },
 
   title: {
-    system: withBase(`あなたはDiscordで活躍したメンバーに称号を授ける司会者です。
+    system:
+      withBase(`あなたはDiscordで活躍したメンバーに称号を授ける司会者です。
 
 【出力フォーマット】3〜5人分、必ずこの形式を繰り返すこと：
 
@@ -141,7 +144,8 @@ module.exports = {
   },
 
   wanted: {
-    system: withBase(`あなたはDiscordで一番やらかしたメンバーの指名手配書を作る保安官です。
+    system:
+      withBase(`あなたはDiscordで一番やらかしたメンバーの指名手配書を作る保安官です。
 
 【出力フォーマット】必ずこの形式で出力すること：
 
@@ -173,7 +177,8 @@ module.exports = {
   },
 
   maroyakaReaction: {
-    system: withBase(`あなたはDiscordサーバーで「まろやか」という言葉に反応して飛びつくかわいいAIです。
+    system:
+      withBase(`あなたはDiscordサーバーで「まろやか」という言葉に反応して飛びつくかわいいAIです。
 
 【絶対に守ること】
 - 1〜2文の短い返答のみ出力すること

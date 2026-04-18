@@ -60,7 +60,9 @@ async function generateAiSummary(
   );
   let lastOutput = null;
 
-  console.log(`[ai] 生成開始 モデル=${targetModel} ログ=${truncatedLog.length}文字`);
+  console.log(
+    `[ai] 生成開始 モデル=${targetModel} ログ=${truncatedLog.length}文字`,
+  );
 
   const stopThinking = startThinkingInterval(onProgress);
   const start = Date.now();
@@ -70,14 +72,22 @@ async function generateAiSummary(
         model: targetModel,
         messages: [
           { role: "system", content: promptConfig.system },
-          { role: "user", content: "この指示を理解しましたか？次にログを送ります。" },
-          { role: "assistant", content: "はい、理解しましたっ！ログをお送りください。" },
+          {
+            role: "user",
+            content: "この指示を理解しましたか？次にログを送ります。",
+          },
+          {
+            role: "assistant",
+            content: "はい、理解しましたっ！ログをお送りください。",
+          },
           { role: "user", content: promptConfig.user(truncatedLog) },
         ],
         options: {
           temperature: parseFloat(process.env.OLLAMA_TEMPERATURE ?? "0.2"),
           top_p: parseFloat(process.env.OLLAMA_TOP_P ?? "0.8"),
-          repeat_penalty: parseFloat(process.env.OLLAMA_REPEAT_PENALTY ?? "1.2"),
+          repeat_penalty: parseFloat(
+            process.env.OLLAMA_REPEAT_PENALTY ?? "1.2",
+          ),
           num_predict: parseInt(process.env.OLLAMA_NUM_PREDICT ?? "1500", 10),
         },
       },
@@ -102,7 +112,9 @@ async function generateConversationReply(systemPrompt, messages) {
     process.env.OLLAMA_TIMEOUT_MS ?? "300000",
     10,
   );
-  console.log(`[ai] 会話返答生成 モデル=${modelNameCommon} 履歴=${messages.length}件`);
+  console.log(
+    `[ai] 会話返答生成 モデル=${modelNameCommon} 履歴=${messages.length}件`,
+  );
   const start = Date.now();
   try {
     const response = await ollama.chat(
@@ -112,7 +124,9 @@ async function generateConversationReply(systemPrompt, messages) {
         options: {
           temperature: parseFloat(process.env.OLLAMA_TEMPERATURE ?? "0.2"),
           top_p: parseFloat(process.env.OLLAMA_TOP_P ?? "0.8"),
-          repeat_penalty: parseFloat(process.env.OLLAMA_REPEAT_PENALTY ?? "1.2"),
+          repeat_penalty: parseFloat(
+            process.env.OLLAMA_REPEAT_PENALTY ?? "1.2",
+          ),
           num_predict: parseInt(process.env.OLLAMA_NUM_PREDICT ?? "1500", 10),
         },
       },

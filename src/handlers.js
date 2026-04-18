@@ -1,7 +1,12 @@
 const { EmbedBuilder } = require("discord.js");
 const prompts = require("./prompts");
 const { collectServerLogs, collectChannelLogs } = require("./logs");
-const { generateAiSummary, generateConversationReply, modelNameCommon, modelNameHaiku } = require("./ai");
+const {
+  generateAiSummary,
+  generateConversationReply,
+  modelNameCommon,
+  modelNameHaiku,
+} = require("./ai");
 const schedule = require("./schedule");
 const { parseTopicsToFields } = require("./utils");
 
@@ -31,7 +36,6 @@ const EMBED_TITLES = {
   fortune: "今日のおみくじですっ",
   title: "今日の称号ですっ",
   wanted: "🚨 本日の指名手配 🚨",
-
 };
 
 function getEmbedTitle(commandName, channelName) {
@@ -54,7 +58,9 @@ async function handleSlashCommand(interaction) {
   const progress = makeProgress(interaction);
 
   const start = Date.now();
-  console.log(`[cmd] /${interaction.commandName} 開始 user=${interaction.user.tag} guild=${interaction.guildId}`);
+  console.log(
+    `[cmd] /${interaction.commandName} 開始 user=${interaction.user.tag} guild=${interaction.guildId}`,
+  );
 
   try {
     const logText =
@@ -63,7 +69,9 @@ async function handleSlashCommand(interaction) {
         : await collectChannelLogs(interaction.channel, progress);
 
     if (!logText) {
-      console.warn(`[cmd] /${interaction.commandName} ログ取得結果が空のため終了`);
+      console.warn(
+        `[cmd] /${interaction.commandName} ログ取得結果が空のため終了`,
+      );
       return interaction.deleteReply();
     }
 
@@ -101,9 +109,14 @@ async function handleSlashCommand(interaction) {
       embed.setDescription(safeContent);
     }
     await interaction.editReply({ content: "", embeds: [embed] });
-    console.log(`[cmd] /${interaction.commandName} 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`);
+    console.log(
+      `[cmd] /${interaction.commandName} 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+    );
   } catch (error) {
-    console.error(`[cmd] /${interaction.commandName} エラー (${((Date.now() - start) / 1000).toFixed(1)}s):`, error);
+    console.error(
+      `[cmd] /${interaction.commandName} エラー (${((Date.now() - start) / 1000).toFixed(1)}s):`,
+      error,
+    );
     await interaction.deleteReply().catch(() => {});
   } finally {
     isProcessing = false;
@@ -142,9 +155,14 @@ async function handleSuggestTopic(interaction) {
       .setColor(0xf5c2e7)
       .setTimestamp();
     await interaction.editReply({ content: "", embeds: [embed] });
-    console.log(`[cmd] /suggesttopic 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`);
+    console.log(
+      `[cmd] /suggesttopic 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+    );
   } catch (error) {
-    console.error(`[cmd] /suggesttopic エラー (${((Date.now() - start) / 1000).toFixed(1)}s):`, error);
+    console.error(
+      `[cmd] /suggesttopic エラー (${((Date.now() - start) / 1000).toFixed(1)}s):`,
+      error,
+    );
     await interaction.deleteReply().catch(() => {});
   } finally {
     isProcessing = false;
@@ -171,7 +189,9 @@ async function handleGetNewsChannel(interaction) {
     prompts.STYLE_CHOICES.find(
       (c) => c.value === schedule.getNewsStyle(interaction.guildId),
     )?.name ?? "まろやか（デフォルト）";
-  const enabledStatus = schedule.isNewsEnabled(interaction.guildId) ? "オン" : "オフ";
+  const enabledStatus = schedule.isNewsEnabled(interaction.guildId)
+    ? "オン"
+    : "オフ";
   return interaction.reply({
     content: `現在の定期配信先は ${schedule.getScheduledChannelMention(interaction.guildId)}、配信時刻は ${schedule.getScheduleTimeString(interaction.guildId)}、スタイルは「${styleName}」、定期配信は **${enabledStatus}** です。`,
     ephemeral: true,
@@ -221,7 +241,6 @@ async function handleHelp(interaction) {
           "`/story` 今日の会話をもとに短編小説を書く",
           "`/question` みんなへの質問を1つ投げかける",
           "`/suggesttopic` 次の話題を提案する",
-
         ].join("\n"),
       },
       {
@@ -283,7 +302,6 @@ const maroyakaCooldowns = new Map();
 const MAROYAKA_COOLDOWN_MS = 60 * 60 * 1000;
 const MAX_CONVERSATION_DEPTH = 10;
 
-
 const CONVERSATION_SYSTEM = `あなたはDiscordサーバーのかわいいAIキャラクター「まろやかAI」です。
 
 【絶対に守ること】
@@ -323,11 +341,20 @@ async function handleMessageCreate(message, botId) {
         message.reference.messageId,
       );
       if (referenced.author.id === botId) {
-        console.log(`[msg] リプライ検出 user=${message.author.tag} channel=${message.channelId}`);
+        console.log(
+          `[msg] リプライ検出 user=${message.author.tag} channel=${message.channelId}`,
+        );
         const history = await buildConversationHistory(message, botId);
         console.log(`[msg] 会話履歴=${history.length}件`);
-        const reply = await generateConversationReply(CONVERSATION_SYSTEM, history);
-        await message.reply(reply).catch((e) => console.error(`[msg] リプライ送信エラー: ${e.message}`));
+        const reply = await generateConversationReply(
+          CONVERSATION_SYSTEM,
+          history,
+        );
+        await message
+          .reply(reply)
+          .catch((e) =>
+            console.error(`[msg] リプライ送信エラー: ${e.message}`),
+          );
         return;
       }
     } catch (e) {
@@ -342,15 +369,24 @@ async function handleMessageCreate(message, botId) {
   const now = Date.now();
   const lastTime = maroyakaCooldowns.get(message.channelId) ?? 0;
   if (now - lastTime < MAROYAKA_COOLDOWN_MS) {
-    const remaining = Math.ceil((MAROYAKA_COOLDOWN_MS - (now - lastTime)) / 60000);
-    console.log(`[msg] まろやかAI検出 クールダウン中 残り約${remaining}分 channel=${message.channelId}`);
+    const remaining = Math.ceil(
+      (MAROYAKA_COOLDOWN_MS - (now - lastTime)) / 60000,
+    );
+    console.log(
+      `[msg] まろやかAI検出 クールダウン中 残り約${remaining}分 channel=${message.channelId}`,
+    );
     return;
   }
   maroyakaCooldowns.set(message.channelId, now);
-  console.log(`[msg] まろやかAI検出 反応生成 user=${message.author.tag} channel=${message.channelId}`);
+  console.log(
+    `[msg] まろやかAI検出 反応生成 user=${message.author.tag} channel=${message.channelId}`,
+  );
 
   try {
-    const reply = await generateAiSummary(prompts.maroyakaReaction, message.content);
+    const reply = await generateAiSummary(
+      prompts.maroyakaReaction,
+      message.content,
+    );
     await message.channel
       .send(reply || MAROYAKA_FALLBACK_RESPONSES[0])
       .catch((e) => console.error(`[msg] 送信エラー: ${e.message}`));
