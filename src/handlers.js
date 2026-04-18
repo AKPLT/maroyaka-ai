@@ -375,6 +375,7 @@ async function handleMessageCreate(message, botId) {
         message.reference.messageId,
       );
       if (referenced.author.id === botId) {
+        const start = Date.now();
         console.log(
           `[msg] リプライ検出 user=${message.author.tag} channel=${message.channelId}`,
         );
@@ -389,6 +390,9 @@ async function handleMessageCreate(message, botId) {
           .catch((e) =>
             console.error(`[msg] リプライ送信エラー: ${e.message}`),
           );
+        console.log(
+          `[msg] リプライ完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+        );
         return;
       }
     } catch (e) {
@@ -417,6 +421,7 @@ async function handleMessageCreate(message, botId) {
   );
 
   try {
+    const start = Date.now();
     const reply = await generateAiSummary(
       prompts.maroyakaReaction,
       message.content,
@@ -424,6 +429,9 @@ async function handleMessageCreate(message, botId) {
     await message.channel
       .send(reply || MAROYAKA_FALLBACK_RESPONSES[0])
       .catch((e) => console.error(`[msg] 送信エラー: ${e.message}`));
+    console.log(
+      `[msg] まろやかAI反応完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+    );
   } catch (e) {
     console.error(`[msg] まろやかAI反応エラー: ${e.message}`);
     const fallback =
