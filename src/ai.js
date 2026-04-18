@@ -13,8 +13,7 @@ const ollamaAgent = new Agent({
 });
 const ollama = new Ollama({
   host: `http://${process.env.OLLAMA_HOST_IP}:11434`,
-  fetch: (url, opts) =>
-    undiciFetch(url, { ...opts, dispatcher: ollamaAgent }),
+  fetch: (url, opts) => undiciFetch(url, { ...opts, dispatcher: ollamaAgent }),
 });
 const modelNameCommon = process.env.OLLAMA_MODEL;
 const modelNameHaiku = process.env.OLLAMA_HAIKU_MODEL;
@@ -106,9 +105,10 @@ async function generateAiSummary(
             { role: "user", content: promptConfig.user(truncatedLog) },
           ],
           options: {
-            temperature: 0.5, // 低くすると「事実に基づいた堅実な回答」になります（推奨: 0.2〜0.5）
-            top_p: 0.9, // 語彙の多様性を少し抑えて一貫性を保ちます
-            num_predict: 4096, // 出力が長すぎないように最大トークンを制限
+            temperature: parseFloat(process.env.OLLAMA_TEMPERATURE ?? "0.2"),
+            top_p: parseFloat(process.env.OLLAMA_TOP_P ?? "0.8"),
+            repeat_penalty: parseFloat(process.env.OLLAMA_REPEAT_PENALTY ?? "1.2"),
+            num_predict: parseInt(process.env.OLLAMA_NUM_PREDICT ?? "1500", 10),
           },
         },
         { signal: AbortSignal.timeout(ollamaTimeoutMs) },
