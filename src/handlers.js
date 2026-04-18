@@ -188,8 +188,19 @@ async function handleGetNewsChannel(interaction) {
     prompts.STYLE_CHOICES.find(
       (c) => c.value === schedule.getNewsStyle(interaction.guildId),
     )?.name ?? "まろやか（デフォルト）";
+  const enabledStatus = schedule.isNewsEnabled(interaction.guildId) ? "オン" : "オフ";
   return interaction.reply({
-    content: `現在の定期配信先は ${schedule.getScheduledChannelMention(interaction.guildId)}、配信時刻は ${schedule.getScheduleTimeString(interaction.guildId)}、スタイルは「${styleName}」です。`,
+    content: `現在の定期配信先は ${schedule.getScheduledChannelMention(interaction.guildId)}、配信時刻は ${schedule.getScheduleTimeString(interaction.guildId)}、スタイルは「${styleName}」、定期配信は **${enabledStatus}** です。`,
+    ephemeral: true,
+  });
+}
+
+async function handleToggleNews(interaction) {
+  const enabled = interaction.options.getBoolean("enabled");
+  schedule.setNewsEnabled(interaction.guildId, enabled);
+  const status = enabled ? "オン" : "オフ";
+  return interaction.reply({
+    content: `定期配信を **${status}** にしました。`,
     ephemeral: true,
   });
 }
@@ -245,6 +256,7 @@ async function handleHelp(interaction) {
           "`/setnewstime` 定期配信の時刻を設定",
           "`/setnewsstyle` 定期配信の要約スタイルを設定",
           "`/getnewschannel` 現在の定期配信設定を確認",
+          "`/togglenews` 定期配信のオン/オフを切り替え",
         ].join("\n"),
       },
     )
@@ -379,6 +391,7 @@ module.exports = {
   handleGetNewsChannel,
   handleSetNewsTime,
   handleSetNewsStyle,
+  handleToggleNews,
   handleHelp,
   handleMessageCreate,
 };

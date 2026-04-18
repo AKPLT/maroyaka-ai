@@ -92,6 +92,15 @@ const commands = [
         .addChoices(...STYLE_CHOICES),
     ),
   new SlashCommandBuilder()
+    .setName("togglenews")
+    .setDescription("定期配信のオン/オフを切り替えます")
+    .addBooleanOption((option) =>
+      option
+        .setName("enabled")
+        .setDescription("true: オン / false: オフ")
+        .setRequired(true),
+    ),
+  new SlashCommandBuilder()
     .setName("help")
     .setDescription("使えるコマンドの一覧を表示します"),
 ].map((command) => command.toJSON());

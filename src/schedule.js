@@ -111,6 +111,15 @@ function setScheduleTime(guildId, hour, minute) {
   });
 }
 
+function isNewsEnabled(guildId) {
+  const cfg = getGuildConfig(guildId);
+  return cfg.enabled !== false;
+}
+
+function setNewsEnabled(guildId, enabled) {
+  return setGuildConfig(guildId, { enabled });
+}
+
 function getNewsStyle(guildId) {
   return getGuildConfig(guildId).newsStyle ?? "maroyaka";
 }
@@ -137,6 +146,7 @@ function scheduleGuildNews(guildId) {
 
   const channelId = getScheduledChannelId(guildId);
   if (!channelId) return;
+  if (!isNewsEnabled(guildId)) return;
 
   const task = cron.schedule(getScheduleCronExpression(guildId), async () => {
     const channel =
@@ -323,4 +333,6 @@ module.exports = {
   setScheduleTime,
   getNewsStyle,
   setNewsStyle,
+  isNewsEnabled,
+  setNewsEnabled,
 };
