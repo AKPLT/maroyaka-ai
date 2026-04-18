@@ -52,13 +52,19 @@ async function handleSlashCommand(interaction) {
   isProcessing = true;
   const progress = makeProgress(interaction);
 
+  const start = Date.now();
+  console.log(`[cmd] /${interaction.commandName} 開始 user=${interaction.user.tag} guild=${interaction.guildId}`);
+
   try {
     const logText =
       interaction.commandName === "news"
         ? await collectServerLogs(interaction.guild, progress)
         : await collectChannelLogs(interaction.channel, progress);
 
-    if (!logText) return interaction.deleteReply();
+    if (!logText) {
+      console.warn(`[cmd] /${interaction.commandName} ログ取得結果が空のため終了`);
+      return interaction.deleteReply();
+    }
 
     const modelName =
       interaction.commandName === "haiku" ? modelNameHaiku : modelNameCommon;
@@ -68,6 +74,7 @@ async function handleSlashCommand(interaction) {
       const style = interaction.options.getString("style") ?? "maroyaka";
       promptConfig =
         prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
+      console.log(`[cmd] /${interaction.commandName} スタイル=${style}`);
     }
     const replyContent = await generateAiSummary(
       promptConfig,
@@ -77,7 +84,6 @@ async function handleSlashCommand(interaction) {
       modelName,
     );
 
-    // replyContentを安全に切り詰める処理
     const safeContent =
       replyContent.length > 4096
         ? replyContent.substring(0, 4093) + "..."
@@ -87,12 +93,13 @@ async function handleSlashCommand(interaction) {
       .setTitle(
         getEmbedTitle(interaction.commandName, interaction.channel.name),
       )
-      .setDescription(safeContent) // 安全な文字列を渡す
+      .setDescription(safeContent)
       .setColor(0xf5c2e7)
       .setTimestamp();
     await interaction.editReply({ content: "", embeds: [embed] });
+    console.log(`[cmd] /${interaction.commandName} 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`);
   } catch (error) {
-    console.error("Error:", error);
+    console.error(`[cmd] /${interaction.commandName} エラー (${((Date.now() - start) / 1000).toFixed(1)}s):`, error);
     await interaction.deleteReply().catch(() => {});
   } finally {
     isProcessing = false;
@@ -109,9 +116,14 @@ async function handleSuggestTopic(interaction) {
   isProcessing = true;
   const progress = makeProgress(interaction);
 
+  const start = Date.now();
+  console.log(`[cmd] /suggesttopic 開始 user=${interaction.user.tag}`);
   try {
     const logText = await collectChannelLogs(interaction.channel, progress);
-    if (!logText) return interaction.deleteReply();
+    if (!logText) {
+      console.warn(`[cmd] /suggesttopic ログ取得結果が空のため終了`);
+      return interaction.deleteReply();
+    }
 
     const validate = interaction.options.getBoolean("validate") ?? false;
     const suggestion = await generateAiSummary(
@@ -128,8 +140,9 @@ async function handleSuggestTopic(interaction) {
       .setColor(0xf5c2e7)
       .setTimestamp();
     await interaction.editReply({ content: "", embeds: [embed] });
+    console.log(`[cmd] /suggesttopic 完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`);
   } catch (error) {
-    console.error("Topic suggestion error:", error);
+    console.error(`[cmd] /suggesttopic エラー (${((Date.now() - start) / 1000).toFixed(1)}s):`, error);
     await interaction.deleteReply().catch(() => {});
   } finally {
     isProcessing = false;
@@ -297,15 +310,16 @@ async function handleMessageCreate(message, botId) {
         message.reference.messageId,
       );
       if (referenced.author.id === botId) {
+        console.log(`[msg] リプライ検出 user=${message.author.tag} channel=${message.channelId}`);
         const history = await buildConversationHistory(message, botId);
-        const reply = await generateConversationReply(
-          CONVERSATION_SYSTEM,
-          history,
-        );
-        await message.reply(reply).catch(() => {});
+        console.log(`[msg] 会話履歴=${history.length}件`);
+        const reply = await generateConversationReply(CONVERSATION_SYSTEM, history);
+        await message.reply(reply).catch((e) => console.error(`[msg] リプライ送信エラー: ${e.message}`));
         return;
       }
-    } catch {}
+    } catch (e) {
+      console.error(`[msg] リプライ元メッセージ取得エラー: ${e.message}`);
+    }
   }
 
   // 「まろやかAI」またはメンション → 必ず反応（空リプ）
@@ -314,25 +328,27 @@ async function handleMessageCreate(message, botId) {
 
   const now = Date.now();
   const lastTime = maroyakaCooldowns.get(message.channelId) ?? 0;
-  if (now - lastTime < MAROYAKA_COOLDOWN_MS) return;
+  if (now - lastTime < MAROYAKA_COOLDOWN_MS) {
+    const remaining = Math.ceil((MAROYAKA_COOLDOWN_MS - (now - lastTime)) / 60000);
+    console.log(`[msg] まろやかAI検出 クールダウン中 残り約${remaining}分 channel=${message.channelId}`);
+    return;
+  }
   maroyakaCooldowns.set(message.channelId, now);
+  console.log(`[msg] まろやかAI検出 反応生成 user=${message.author.tag} channel=${message.channelId}`);
 
   try {
-    const reply = await generateAiSummary(
-      prompts.maroyakaReaction,
-      message.content,
-    );
+    const reply = await generateAiSummary(prompts.maroyakaReaction, message.content);
     await message.channel
       .send(reply || MAROYAKA_FALLBACK_RESPONSES[0])
-      .catch(() => {});
-  } catch {
+      .catch((e) => console.error(`[msg] 送信エラー: ${e.message}`));
+  } catch (e) {
+    console.error(`[msg] まろやかAI反応エラー: ${e.message}`);
     const fallback =
       MAROYAKA_FALLBACK_RESPONSES[
         Math.floor(Math.random() * MAROYAKA_FALLBACK_RESPONSES.length)
       ];
     await message.channel.send(fallback).catch(() => {});
   }
-
 }
 
 module.exports = {

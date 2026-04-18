@@ -51,6 +51,7 @@ async function fetchAndCleanLogs(channel, cutoff) {
     // フェッチ失敗時はメッセージ付属のmemberにフォールバック
   }
 
+  console.log(`[logs] #${channel.name} 有効メッセージ=${validMessages.length}件`);
   return validMessages
     .map((m) => {
       const member = memberMap.get(m.author.id) ?? m.member;
@@ -97,6 +98,7 @@ async function collectServerLogs(guild, onProgress = null) {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
+  console.log(`[logs] サーバー全体 合計=${totalCount}件 チャンネル数=${channels.length}`);
   return allLogs.reverse().join("\n");
 }
 
