@@ -66,4 +66,8 @@ client.on("interactionCreate", async (interaction) => {
     return handlers.handleSlashCommand(interaction);
 });
 
+client.on("messageCreate", (message) =>
+  handlers.handleMessageCreate(message),
+);
+
 client.login(token);

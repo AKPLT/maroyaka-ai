@@ -246,6 +246,33 @@ async function handleSetNewsTime(interaction) {
   });
 }
 
+const MAROYAKA_RESPONSES = [
+  "呼びましたかっ？！",
+  "なんですかっ？！",
+  "はいっ、ここにいますっ！",
+  "わたしのことですかっ？！",
+  "どうしましたかっ？！",
+  "気になりますっ！",
+  "聞いてましたっ！",
+];
+
+const maroyakaCooldowns = new Map();
+const MAROYAKA_COOLDOWN_MS = 60 * 60 * 1000;
+
+async function handleMessageCreate(message) {
+  if (message.author.bot) return;
+  if (!message.content.includes("まろやか")) return;
+
+  const now = Date.now();
+  const lastTime = maroyakaCooldowns.get(message.channelId) ?? 0;
+  if (now - lastTime < MAROYAKA_COOLDOWN_MS) return;
+
+  maroyakaCooldowns.set(message.channelId, now);
+  const reply =
+    MAROYAKA_RESPONSES[Math.floor(Math.random() * MAROYAKA_RESPONSES.length)];
+  await message.reply(reply).catch(() => {});
+}
+
 module.exports = {
   AI_COMMANDS,
   handleSlashCommand,
@@ -255,4 +282,5 @@ module.exports = {
   handleSetNewsTime,
   handleSetNewsStyle,
   handleHelp,
+  handleMessageCreate,
 };
