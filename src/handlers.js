@@ -246,14 +246,11 @@ async function handleSetNewsTime(interaction) {
   });
 }
 
-const MAROYAKA_RESPONSES = [
+const MAROYAKA_FALLBACK_RESPONSES = [
   "呼びましたかっ？！",
   "なんですかっ？！",
   "はいっ、ここにいますっ！",
   "わたしのことですかっ？！",
-  "どうしましたかっ？！",
-  "気になりますっ！",
-  "聞いてましたっ！",
 ];
 
 const maroyakaCooldowns = new Map();
@@ -268,9 +265,20 @@ async function handleMessageCreate(message) {
   if (now - lastTime < MAROYAKA_COOLDOWN_MS) return;
 
   maroyakaCooldowns.set(message.channelId, now);
-  const reply =
-    MAROYAKA_RESPONSES[Math.floor(Math.random() * MAROYAKA_RESPONSES.length)];
-  await message.reply(reply).catch(() => {});
+
+  try {
+    const reply = await generateAiSummary(
+      prompts.maroyakaReaction,
+      message.content,
+    );
+    await message.reply(reply || MAROYAKA_FALLBACK_RESPONSES[0]).catch(() => {});
+  } catch {
+    const fallback =
+      MAROYAKA_FALLBACK_RESPONSES[
+        Math.floor(Math.random() * MAROYAKA_FALLBACK_RESPONSES.length)
+      ];
+    await message.reply(fallback).catch(() => {});
+  }
 }
 
 module.exports = {
