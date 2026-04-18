@@ -310,69 +310,6 @@ const maroyakaCooldowns = new Map();
 const MAROYAKA_COOLDOWN_MS = 60 * 60 * 1000;
 const MAX_CONVERSATION_DEPTH = 10;
 
-const bustInTimestamps = new Map(); // channelId -> timestamp[]
-const bustInCooldowns = new Map(); // channelId -> timestamp
-const BUST_IN_WINDOW_MS = 60 * 1000; // 60秒以内に
-const BUST_IN_THRESHOLD = 10; // N件以上で検知
-const BUST_IN_COOLDOWN_MS = 60 * 60 * 1000; // 投稿後1時間クールダウン
-const BUST_IN_LOG_COUNT = 15; // 分析するメッセージ数
-
-async function checkAndBustIn(message, botId) {
-  const channelId = message.channelId;
-  const now = Date.now();
-
-  const timestamps = bustInTimestamps.get(channelId) ?? [];
-  timestamps.push(now);
-  const recent = timestamps.filter((t) => now - t < BUST_IN_WINDOW_MS);
-  bustInTimestamps.set(channelId, recent);
-
-  if (recent.length < BUST_IN_THRESHOLD) return;
-
-  const lastBustIn = bustInCooldowns.get(channelId) ?? 0;
-  if (now - lastBustIn < BUST_IN_COOLDOWN_MS) return;
-
-  bustInCooldowns.set(channelId, now);
-  bustInTimestamps.set(channelId, []);
-  console.log(
-    `[msg] 盛り上がり検知 channel=${channelId} (${recent.length}件/${BUST_IN_WINDOW_MS / 1000}秒)`,
-  );
-
-  try {
-    const fetched = await message.channel.messages.fetch({
-      limit: BUST_IN_LOG_COUNT,
-    });
-    const contextCutoff = Date.now() - BUST_IN_WINDOW_MS * 3;
-    const history = [...fetched.values()]
-      .reverse()
-      .filter(
-        (m) =>
-          !m.author.bot &&
-          m.content.trim() &&
-          m.createdTimestamp > contextCutoff,
-      )
-      .map((m) => {
-        const name =
-          m.member?.nickname ?? m.member?.displayName ?? m.author.username;
-        return { role: "user", content: `${name}: ${m.content}` };
-      });
-
-    if (history.length === 0) return;
-
-    const reply = await generateConversationReply(
-      prompts.bustIn.system,
-      history,
-    );
-    if (!reply) return;
-
-    await message.channel
-      .send(reply)
-      .catch((e) => console.error(`[msg] 盛り上がり投稿エラー: ${e.message}`));
-    console.log(`[msg] 盛り上がり参加 channel=${channelId}`);
-  } catch (e) {
-    console.error(`[msg] 盛り上がり検知エラー: ${e.message}`);
-  }
-}
-
 const CONVERSATION_SYSTEM = `あなたはDiscordサーバーのかわいいAIキャラクター「まろやかAI」です。
 
 【絶対に守ること】
@@ -458,9 +395,6 @@ async function handleMessageCreate(message, botId) {
       console.error(`[msg] リプライ元メッセージ取得エラー: ${e.message}`);
     }
   }
-
-  // 盛り上がり検知（非同期、待たない）
-  checkAndBustIn(message, botId).catch(() => {});
 
   // 「まろやかAI」またはメンション → 必ず反応（空リプ）
   const mentionsBot = message.mentions.users.has(botId);
