@@ -263,12 +263,20 @@ function scheduleAppearanceCheck() {
   });
 }
 
+const MIN_LOGS_FOR_NEWS = parseInt(process.env.MIN_LOGS_FOR_NEWS ?? "10", 10);
+
 async function postScheduledNews(channel) {
   if (!channel || !channel.isTextBased() || channel.isThread()) return;
 
   try {
     const logText = await collectServerLogs(channel.guild);
     if (!logText) return;
+
+    const logCount = logText.split("\n").filter((l) => l.trim()).length;
+    if (logCount < MIN_LOGS_FOR_NEWS) {
+      console.log(`投稿数が少ないため定期ニュースをスキップ (${logCount}件 < ${MIN_LOGS_FOR_NEWS}件)`);
+      return;
+    }
 
     console.log(`Ollama に送信中...`);
     const style = getNewsStyle(channel.guild.id);
