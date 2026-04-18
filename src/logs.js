@@ -95,8 +95,6 @@ async function collectServerLogs(guild, onProgress = null) {
   let allLogs = [];
   let totalCount = 0;
   const anchors = [];
-  const refMap = {};
-  let refCounter = 0;
   for (let i = 0; i < channels.length; i++) {
     const channel = channels[i];
     console.log(`取得中... #${channel.name}`);
@@ -105,13 +103,7 @@ async function collectServerLogs(guild, onProgress = null) {
     );
     const { logs, messageIds } = await fetchAndCleanLogs(channel, cutoff);
     totalCount += logs.length;
-    for (let j = 0; j < logs.length; j++) {
-      refCounter++;
-      const ref = String(refCounter).padStart(4, "0");
-      allLogs.push(`[${ref}]${logs[j]}`);
-      refMap[ref] =
-        `https://discord.com/channels/${guild.id}/${channel.id}/${messageIds[j]}`;
-    }
+    allLogs.push(...logs);
     if (messageIds.length > 0) {
       anchors.push({
         name: channel.name,
@@ -124,7 +116,7 @@ async function collectServerLogs(guild, onProgress = null) {
   console.log(
     `[logs] サーバー全体 合計=${totalCount}件 チャンネル数=${channels.length}`,
   );
-  return { text: allLogs.reverse().join("\n"), anchors, refMap };
+  return { text: allLogs.reverse().join("\n"), anchors };
 }
 
 async function collectChannelLogs(channel, onProgress = null) {
@@ -133,20 +125,12 @@ async function collectChannelLogs(channel, onProgress = null) {
   const { logs, messageIds } = await fetchAndCleanLogs(channel, cutoff);
   onProgress?.(`#${channel.name} から ${logs.length}件 取得しましたっ`);
 
-  const refMap = {};
-  const taggedLogs = logs.map((log, i) => {
-    const ref = String(i + 1).padStart(4, "0");
-    refMap[ref] =
-      `https://discord.com/channels/${channel.guild.id}/${channel.id}/${messageIds[i]}`;
-    return `[${ref}]${log}`;
-  });
-
   const anchorUrl =
     messageIds.length > 0
       ? `https://discord.com/channels/${channel.guild.id}/${channel.id}/${messageIds[0]}`
       : null;
 
-  return { text: taggedLogs.reverse().join("\n"), anchorUrl, refMap };
+  return { text: logs.reverse().join("\n"), anchorUrl };
 }
 
 module.exports = { fetchAndCleanLogs, collectServerLogs, collectChannelLogs };

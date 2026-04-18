@@ -5,7 +5,7 @@ const { EmbedBuilder } = require("discord.js");
 const prompts = require("./prompts");
 const { collectServerLogs } = require("./logs");
 const { generateAiSummary } = require("./ai");
-const { parseTopicsToFields, replaceRefs } = require("./utils");
+const { parseTopicsToFields } = require("./utils");
 
 const ROOT = path.join(__dirname, "..");
 const scheduleConfigPath = path.join(ROOT, "scheduleConfig.json");
@@ -282,11 +282,7 @@ async function postScheduledNews(channel) {
   if (!channel || !channel.isTextBased() || channel.isThread()) return;
 
   try {
-    const {
-      text: logText,
-      anchors,
-      refMap,
-    } = await collectServerLogs(channel.guild);
+    const { text: logText, anchors } = await collectServerLogs(channel.guild);
     if (!logText) return;
 
     const logCount = logText.split("\n").filter((l) => l.trim()).length;
@@ -301,14 +297,11 @@ async function postScheduledNews(channel) {
     const style = getNewsStyle(channel.guild.id);
     const summaryPrompt =
       prompts.SUMMARY_STYLES[style] ?? prompts.SUMMARY_STYLES.maroyaka;
-    const summary = replaceRefs(
-      await generateAiSummary(
-        summaryPrompt,
-        logText,
-        null,
-        summaryPrompt.model,
-      ),
-      refMap,
+    const summary = await generateAiSummary(
+      summaryPrompt,
+      logText,
+      null,
+      summaryPrompt.model,
     );
     const mvp = await generateAiSummary(prompts.mvp, logText);
     const haiku = await generateAiSummary(prompts.haiku, logText);
