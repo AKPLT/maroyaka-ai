@@ -8,7 +8,7 @@ const {
   modelNameHaiku,
 } = require("./ai");
 const schedule = require("./schedule");
-const { parseTopicsToFields } = require("./utils");
+const { parseTopicsToFields, replaceRefs } = require("./utils");
 
 const AI_COMMANDS = [
   "news",
@@ -86,11 +86,9 @@ async function handleSlashCommand(interaction) {
       if (promptConfig.model) modelName = promptConfig.model;
       console.log(`[cmd] /${interaction.commandName} スタイル=${style}`);
     }
-    const replyContent = await generateAiSummary(
-      promptConfig,
-      logText,
-      progress,
-      modelName,
+    const replyContent = replaceRefs(
+      await generateAiSummary(promptConfig, logText, progress, modelName),
+      logResult.refMap,
     );
 
     const embed = new EmbedBuilder()
@@ -118,7 +116,7 @@ async function handleSlashCommand(interaction) {
           .map((a) => `[#${a.name}](${a.url})`)
           .join("　");
         embed.addFields({
-          name: "📌 ログへジャンプ",
+          name: "ログ",
           value: linkText.substring(0, 1024),
           inline: false,
         });

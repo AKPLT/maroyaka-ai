@@ -12,4 +12,12 @@ function parseTopicsToFields(text) {
   return fields.length > 0 ? fields.slice(0, 25) : null;
 }
 
-module.exports = { parseTopicsToFields };
+function replaceRefs(text, refMap) {
+  if (!text || !refMap || Object.keys(refMap).length === 0) return text;
+  return text.replace(/\[(\d{4})\]/g, (match, ref) => {
+    const url = refMap[ref];
+    return url ? `[📌](${url})` : "";
+  });
+}
+
+module.exports = { parseTopicsToFields, replaceRefs };

@@ -30,4 +30,19 @@ function logUser(instruction) {
   return (log) => `${instruction}\n\n<log>\n${log}\n</log>\n\n${instruction}`;
 }
 
-module.exports = { BASE_RULES, SERIOUS_BASE_RULES, withBase, withSeriousBase, logUser };
+const REF_NOTE =
+  "ログの各行の先頭にある [0001] などの4桁数字は参照IDです。各トピックの末尾に、そのトピックに最も関連するメッセージの参照IDを [0042] の形式で1つだけ付けること。参照IDを付けなかったトピックはリンクなしになる。";
+
+function logUserWithRefs(instruction) {
+  return (log) =>
+    `${instruction}\n${REF_NOTE}\n\n<log>\n${log}\n</log>\n\n${instruction}\n${REF_NOTE}`;
+}
+
+module.exports = {
+  BASE_RULES,
+  SERIOUS_BASE_RULES,
+  withBase,
+  withSeriousBase,
+  logUser,
+  logUserWithRefs,
+};

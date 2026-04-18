@@ -54,36 +54,32 @@ async function fetchAndCleanLogs(channel, cutoff) {
   console.log(
     `[logs] #${channel.name} 有効メッセージ=${validMessages.length}件`,
   );
-  const logs = validMessages
-    .map((m) => {
-      const member = memberMap.get(m.author.id) ?? m.member;
-      const authorName =
-        member?.nickname ?? member?.displayName ?? m.author.username;
+  const logs = [];
+  const messageIds = [];
+  for (const m of validMessages) {
+    const member = memberMap.get(m.author.id) ?? m.member;
+    const authorName =
+      member?.nickname ?? member?.displayName ?? m.author.username;
 
-      let text = m.content
-        .replace(/https?:\/\/[\w/:%#\$&\?\(\)~\.=\+\-]+/g, "")
-        .replace(emojiPattern, "")
-        .replace(/<a?:\w+:\d+>/g, "")
-        .trim();
+    let text = m.content
+      .replace(/https?:\/\/[\w/:%#\$&\?\(\)~\.=\+\-]+/g, "")
+      .replace(emojiPattern, "")
+      .replace(/<a?:\w+:\d+>/g, "")
+      .trim();
 
-      const time = new Date(m.createdTimestamp).toLocaleTimeString("ja-JP", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      return text ? `[#${channel.name}][${time}] ${authorName}: ${text}` : null;
-    })
-    .filter((log) => log !== null);
+    const time = new Date(m.createdTimestamp).toLocaleTimeString("ja-JP", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
 
-  // タイムスタンプで最新メッセージを明示的に探す（Collection順序に依存しない）
-  const newestMessage =
-    validMessages.length > 0
-      ? validMessages.reduce((a, b) =>
-          a.createdTimestamp > b.createdTimestamp ? a : b,
-        )
-      : null;
+    if (text) {
+      logs.push(`[#${channel.name}][${time}] ${authorName}: ${text}`);
+      messageIds.push(m.id);
+    }
+  }
 
-  return { logs, newestMessageId: newestMessage?.id ?? null };
+  return { logs, messageIds };
 }
 
 async function collectServerLogs(guild, onProgress = null) {
@@ -99,19 +95,27 @@ async function collectServerLogs(guild, onProgress = null) {
   let allLogs = [];
   let totalCount = 0;
   const anchors = [];
+  const refMap = {};
+  let refCounter = 0;
   for (let i = 0; i < channels.length; i++) {
     const channel = channels[i];
     console.log(`取得中... #${channel.name}`);
     onProgress?.(
       `#${channel.name} を取得中ですっ... (${i + 1}/${channels.length}チャンネル, 計${totalCount}件)`,
     );
-    const { logs, newestMessageId } = await fetchAndCleanLogs(channel, cutoff);
+    const { logs, messageIds } = await fetchAndCleanLogs(channel, cutoff);
     totalCount += logs.length;
-    allLogs.push(...logs);
-    if (newestMessageId) {
+    for (let j = 0; j < logs.length; j++) {
+      refCounter++;
+      const ref = String(refCounter).padStart(4, "0");
+      allLogs.push(`[${ref}]${logs[j]}`);
+      refMap[ref] =
+        `https://discord.com/channels/${guild.id}/${channel.id}/${messageIds[j]}`;
+    }
+    if (messageIds.length > 0) {
       anchors.push({
         name: channel.name,
-        url: `https://discord.com/channels/${guild.id}/${channel.id}/${newestMessageId}`,
+        url: `https://discord.com/channels/${guild.id}/${channel.id}/${messageIds[0]}`,
       });
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -120,18 +124,29 @@ async function collectServerLogs(guild, onProgress = null) {
   console.log(
     `[logs] サーバー全体 合計=${totalCount}件 チャンネル数=${channels.length}`,
   );
-  return { text: allLogs.reverse().join("\n"), anchors };
+  return { text: allLogs.reverse().join("\n"), anchors, refMap };
 }
 
 async function collectChannelLogs(channel, onProgress = null) {
   const cutoff = Date.now() - summaryWindowMs;
   onProgress?.(`#${channel.name} のメッセージを取得中ですっ...`);
-  const { logs, newestMessageId } = await fetchAndCleanLogs(channel, cutoff);
+  const { logs, messageIds } = await fetchAndCleanLogs(channel, cutoff);
   onProgress?.(`#${channel.name} から ${logs.length}件 取得しましたっ`);
-  const anchorUrl = newestMessageId
-    ? `https://discord.com/channels/${channel.guild.id}/${channel.id}/${newestMessageId}`
-    : null;
-  return { text: logs.reverse().join("\n"), anchorUrl };
+
+  const refMap = {};
+  const taggedLogs = logs.map((log, i) => {
+    const ref = String(i + 1).padStart(4, "0");
+    refMap[ref] =
+      `https://discord.com/channels/${channel.guild.id}/${channel.id}/${messageIds[i]}`;
+    return `[${ref}]${log}`;
+  });
+
+  const anchorUrl =
+    messageIds.length > 0
+      ? `https://discord.com/channels/${channel.guild.id}/${channel.id}/${messageIds[0]}`
+      : null;
+
+  return { text: taggedLogs.reverse().join("\n"), anchorUrl, refMap };
 }
 
 module.exports = { fetchAndCleanLogs, collectServerLogs, collectChannelLogs };
