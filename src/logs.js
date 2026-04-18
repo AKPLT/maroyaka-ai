@@ -75,13 +75,7 @@ async function fetchAndCleanLogs(channel, cutoff) {
     })
     .filter((log) => log !== null);
 
-  // validMessages は新着順なので末尾が最古のメッセージ
-  const anchorId =
-    validMessages.length > 0
-      ? validMessages[validMessages.length - 1].id
-      : null;
-
-  return { logs, anchorId };
+  return { logs, hasMessages: logs.length > 0 };
 }
 
 async function collectServerLogs(guild, onProgress = null) {
@@ -103,13 +97,13 @@ async function collectServerLogs(guild, onProgress = null) {
     onProgress?.(
       `#${channel.name} を取得中ですっ... (${i + 1}/${channels.length}チャンネル, 計${totalCount}件)`,
     );
-    const { logs, anchorId } = await fetchAndCleanLogs(channel, cutoff);
+    const { logs, hasMessages } = await fetchAndCleanLogs(channel, cutoff);
     totalCount += logs.length;
     allLogs.push(...logs);
-    if (anchorId) {
+    if (hasMessages) {
       anchors.push({
         name: channel.name,
-        url: `https://discord.com/channels/${guild.id}/${channel.id}/${anchorId}`,
+        url: `https://discord.com/channels/${guild.id}/${channel.id}`,
       });
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -124,10 +118,10 @@ async function collectServerLogs(guild, onProgress = null) {
 async function collectChannelLogs(channel, onProgress = null) {
   const cutoff = Date.now() - summaryWindowMs;
   onProgress?.(`#${channel.name} のメッセージを取得中ですっ...`);
-  const { logs, anchorId } = await fetchAndCleanLogs(channel, cutoff);
+  const { logs, hasMessages } = await fetchAndCleanLogs(channel, cutoff);
   onProgress?.(`#${channel.name} から ${logs.length}件 取得しましたっ`);
-  const anchorUrl = anchorId
-    ? `https://discord.com/channels/${channel.guild.id}/${channel.id}/${anchorId}`
+  const anchorUrl = hasMessages
+    ? `https://discord.com/channels/${channel.guild.id}/${channel.id}`
     : null;
   return { text: logs.reverse().join("\n"), anchorUrl };
 }
