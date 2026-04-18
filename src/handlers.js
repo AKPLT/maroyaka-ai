@@ -257,9 +257,6 @@ const maroyakaCooldowns = new Map();
 const MAROYAKA_COOLDOWN_MS = 60 * 60 * 1000;
 const MAX_CONVERSATION_DEPTH = 10;
 
-const monitoringSessions = new Map(); // channelId -> { expiresAt, context: [] }
-const MONITORING_DURATION_MS = 10 * 60 * 1000;
-const MAX_MONITORING_CONTEXT = 10;
 
 const CONVERSATION_SYSTEM = `あなたはDiscordサーバーのかわいいAIキャラクター「まろやかAI」です。
 
@@ -311,25 +308,7 @@ async function handleMessageCreate(message, botId) {
     } catch {}
   }
 
-  // 監視セッション中 → 関係あれば空リプで割り込む
-  const session = monitoringSessions.get(message.channelId);
-  if (session && Date.now() < session.expiresAt) {
-    session.context.push(`${message.author.displayName}: ${message.content}`);
-    if (session.context.length > MAX_MONITORING_CONTEXT) session.context.shift();
-    try {
-      const contextText = session.context.join("\n");
-      const response = await generateAiSummary(
-        prompts.monitoringReaction,
-        contextText,
-      );
-      if (response && !response.trimStart().startsWith("SKIP")) {
-        await message.channel.send(response).catch(() => {});
-      }
-    } catch {}
-    return;
-  }
-
-  // 「まろやかAI」またはメンション → 必ず反応（空リプ）＋監視セッション開始
+  // 「まろやかAI」またはメンション → 必ず反応（空リプ）
   const mentionsBot = message.mentions.users.has(botId);
   if (!mentionsBot && !message.content.includes("まろやかAI")) return;
 
@@ -354,15 +333,6 @@ async function handleMessageCreate(message, botId) {
     await message.channel.send(fallback).catch(() => {});
   }
 
-  // 監視セッション開始（以降の投稿はOllama判定でたまに割り込む）
-  monitoringSessions.set(message.channelId, {
-    expiresAt: now + MONITORING_DURATION_MS,
-    context: [`${message.author.displayName}: ${message.content}`],
-  });
-  setTimeout(
-    () => monitoringSessions.delete(message.channelId),
-    MONITORING_DURATION_MS,
-  );
 }
 
 module.exports = {
