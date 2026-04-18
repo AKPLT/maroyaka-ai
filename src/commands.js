@@ -92,8 +92,8 @@ const commands = [
         .addChoices(...STYLE_CHOICES),
     ),
   new SlashCommandBuilder()
-    .setName("togglenews")
-    .setDescription("定期配信のオン/オフを切り替えます")
+    .setName("setnewsenabled")
+    .setDescription("定期配信のオン/オフを設定します")
     .addBooleanOption((option) =>
       option
         .setName("enabled")

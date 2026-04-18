@@ -256,7 +256,7 @@ async function handleHelp(interaction) {
           "`/setnewstime` 定期配信の時刻を設定",
           "`/setnewsstyle` 定期配信の要約スタイルを設定",
           "`/getnewschannel` 現在の定期配信設定を確認",
-          "`/togglenews` 定期配信のオン/オフを切り替え",
+          "`/setnewsenabled` 定期配信のオン/オフを設定",
         ].join("\n"),
       },
     )
