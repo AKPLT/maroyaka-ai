@@ -47,6 +47,8 @@ async function validateOutput(
       model: targetModel,
       messages: [
         { role: "system", content: promptConfig.system },
+        { role: "user", content: "この指示を理解しましたか？" },
+        { role: "assistant", content: "はい、理解しましたっ！" },
         {
           role: "user",
           content: `以下の出力がシステムプロンプトのすべてのルールを守っているか確認してください。必ず「YES」または「NO」のみで答えてください。\n\n${output}`,
@@ -100,6 +102,8 @@ async function generateAiSummary(
           model: targetModel,
           messages: [
             { role: "system", content: promptConfig.system },
+            { role: "user", content: "この指示を理解しましたか？次にログを送ります。" },
+            { role: "assistant", content: "はい、理解しましたっ！ログをお送りください。" },
             { role: "user", content: promptConfig.user(truncatedLog) },
           ],
           options: {
