@@ -12,7 +12,7 @@ function withBase(specificContent) {
 }
 
 function logUser(instruction) {
-  return (log) => `<log>\n${log}\n</log>\n\n${instruction}`;
+  return (log) => `${instruction}\n\n<log>\n${log}\n</log>\n\n${instruction}`;
 }
 
 module.exports = { BASE_RULES, withBase, logUser };
