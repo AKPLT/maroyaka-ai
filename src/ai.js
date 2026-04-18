@@ -143,11 +143,33 @@ async function generateAiSummary(
   return lastOutput;
 }
 
+async function generateConversationReply(systemPrompt, messages) {
+  const ollamaTimeoutMs = parseInt(
+    process.env.OLLAMA_TIMEOUT_MS ?? "300000",
+    10,
+  );
+  const response = await ollama.chat(
+    {
+      model: modelNameCommon,
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      options: {
+        temperature: parseFloat(process.env.OLLAMA_TEMPERATURE ?? "0.2"),
+        top_p: parseFloat(process.env.OLLAMA_TOP_P ?? "0.8"),
+        repeat_penalty: parseFloat(process.env.OLLAMA_REPEAT_PENALTY ?? "1.2"),
+        num_predict: parseInt(process.env.OLLAMA_NUM_PREDICT ?? "1500", 10),
+      },
+    },
+    { signal: AbortSignal.timeout(ollamaTimeoutMs) },
+  );
+  return sanitizeText(response.message.content);
+}
+
 module.exports = {
   sanitizeText,
   startThinkingInterval,
   validateOutput,
   generateAiSummary,
+  generateConversationReply,
   modelNameCommon,
   modelNameHaiku,
   modelNameValidation,

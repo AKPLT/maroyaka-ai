@@ -67,7 +67,7 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.on("messageCreate", (message) =>
-  handlers.handleMessageCreate(message),
+  handlers.handleMessageCreate(message, client.user.id),
 );
 
 client.login(token);

@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const prompts = require("./prompts");
 const { collectServerLogs, collectChannelLogs } = require("./logs");
-const { generateAiSummary, modelNameCommon, modelNameHaiku } = require("./ai");
+const { generateAiSummary, generateConversationReply, modelNameCommon, modelNameHaiku } = require("./ai");
 const schedule = require("./schedule");
 
 const AI_COMMANDS = [
@@ -255,15 +255,65 @@ const MAROYAKA_FALLBACK_RESPONSES = [
 
 const maroyakaCooldowns = new Map();
 const MAROYAKA_COOLDOWN_MS = 60 * 60 * 1000;
+const MAX_CONVERSATION_DEPTH = 10;
 
-async function handleMessageCreate(message) {
+const CONVERSATION_SYSTEM = `あなたはDiscordサーバーのかわいいAIキャラクター「まろやかAI」です。
+
+【絶対に守ること】
+- 1〜3文の短い返答のみ出力すること
+- 語尾は「〜ですっ」「〜ましたっ」などの可愛い口調にすること
+- 会話の流れに自然に乗ること
+- 日本語のみで回答すること`;
+
+async function buildConversationHistory(message, botId) {
+  const messages = [];
+  let current = message;
+
+  while (current && messages.length < MAX_CONVERSATION_DEPTH) {
+    messages.unshift({
+      role: current.author.id === botId ? "assistant" : "user",
+      content: current.content,
+    });
+    if (!current.reference?.messageId) break;
+    try {
+      current = await current.channel.messages.fetch(
+        current.reference.messageId,
+      );
+    } catch {
+      break;
+    }
+  }
+  return messages;
+}
+
+async function handleMessageCreate(message, botId) {
   if (message.author.bot) return;
-  if (!message.content.includes("まろやか")) return;
 
+  // ボットへのリプライ → 会話継続
+  if (message.reference?.messageId) {
+    try {
+      const referenced = await message.channel.messages.fetch(
+        message.reference.messageId,
+      );
+      if (referenced.author.id === botId) {
+        const history = await buildConversationHistory(message, botId);
+        const reply = await generateConversationReply(
+          CONVERSATION_SYSTEM,
+          history,
+        );
+        await message.reply(reply).catch(() => {});
+        return;
+      }
+    } catch {
+      // 取得失敗時は無視
+    }
+  }
+
+  // 「まろやか」を含む投稿 → クールダウン付き反応
+  if (!message.content.includes("まろやか")) return;
   const now = Date.now();
   const lastTime = maroyakaCooldowns.get(message.channelId) ?? 0;
   if (now - lastTime < MAROYAKA_COOLDOWN_MS) return;
-
   maroyakaCooldowns.set(message.channelId, now);
 
   try {
