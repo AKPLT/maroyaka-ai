@@ -2,8 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const { Ollama } = require("ollama");
 const thinkingMessages = require("../data/thinkingMessages");
-const { CommandInteractionOptionResolver } = require("discord.js");
-const { haiku } = require("./prompts");
 
 const ROOT = path.join(__dirname, "..");
 const { fetch: undiciFetch, Agent } = require("undici");

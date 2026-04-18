@@ -1,5 +1,5 @@
 {
-  "name": "mkdir-discord-summary-bot",
+  "name": "maroyaka-ai",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -7,10 +7,6 @@
     "dev": "nodemon index.js",
     "format": "prettier --write ."
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "discord.js": "^14.26.3",
     "dotenv": "^17.4.2",
