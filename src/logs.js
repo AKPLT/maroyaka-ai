@@ -75,7 +75,15 @@ async function fetchAndCleanLogs(channel, cutoff) {
     })
     .filter((log) => log !== null);
 
-  return { logs, hasMessages: logs.length > 0 };
+  // タイムスタンプで最新メッセージを明示的に探す（Collection順序に依存しない）
+  const newestMessage =
+    validMessages.length > 0
+      ? validMessages.reduce((a, b) =>
+          a.createdTimestamp > b.createdTimestamp ? a : b,
+        )
+      : null;
+
+  return { logs, newestMessageId: newestMessage?.id ?? null };
 }
 
 async function collectServerLogs(guild, onProgress = null) {
@@ -97,13 +105,13 @@ async function collectServerLogs(guild, onProgress = null) {
     onProgress?.(
       `#${channel.name} を取得中ですっ... (${i + 1}/${channels.length}チャンネル, 計${totalCount}件)`,
     );
-    const { logs, hasMessages } = await fetchAndCleanLogs(channel, cutoff);
+    const { logs, newestMessageId } = await fetchAndCleanLogs(channel, cutoff);
     totalCount += logs.length;
     allLogs.push(...logs);
-    if (hasMessages) {
+    if (newestMessageId) {
       anchors.push({
         name: channel.name,
-        url: `https://discord.com/channels/${guild.id}/${channel.id}`,
+        url: `https://discord.com/channels/${guild.id}/${channel.id}/${newestMessageId}`,
       });
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -118,10 +126,10 @@ async function collectServerLogs(guild, onProgress = null) {
 async function collectChannelLogs(channel, onProgress = null) {
   const cutoff = Date.now() - summaryWindowMs;
   onProgress?.(`#${channel.name} のメッセージを取得中ですっ...`);
-  const { logs, hasMessages } = await fetchAndCleanLogs(channel, cutoff);
+  const { logs, newestMessageId } = await fetchAndCleanLogs(channel, cutoff);
   onProgress?.(`#${channel.name} から ${logs.length}件 取得しましたっ`);
-  const anchorUrl = hasMessages
-    ? `https://discord.com/channels/${channel.guild.id}/${channel.id}`
+  const anchorUrl = newestMessageId
+    ? `https://discord.com/channels/${channel.guild.id}/${channel.id}/${newestMessageId}`
     : null;
   return { text: logs.reverse().join("\n"), anchorUrl };
 }
