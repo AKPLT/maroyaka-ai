@@ -30,8 +30,7 @@ const EMBED_TITLES = {
   fortune: "今日のおみくじですっ",
   title: "今日の称号ですっ",
   wanted: "🚨 本日の指名手配 🚨",
-  drama: "今日の昼ドラですっ",
-  report: "本日の業務報告ですっ",
+
 };
 
 function getEmbedTitle(commandName, channelName) {
@@ -196,8 +195,7 @@ async function handleHelp(interaction) {
           "`/story` 今日の会話をもとに短編小説を書く",
           "`/question` みんなへの質問を1つ投げかける",
           "`/suggesttopic` 次の話題を提案する",
-          "`/drama` 今日の会話を昼ドラ風に脚色",
-          "`/report` 今日の会話を業務報告書風にまとめる",
+
         ].join("\n"),
       },
       {
