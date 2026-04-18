@@ -329,7 +329,7 @@ async function handleMessageCreate(message, botId) {
     return;
   }
 
-  // 「まろやかAI」またはメンション → クールダウン付き反応（空リプ）＋監視開始
+  // 「まろやかAI」またはメンション → 監視セッション開始＋Ollamaで判定
   const mentionsBot = message.mentions.users.has(botId);
   if (!mentionsBot && !message.content.includes("まろやかAI")) return;
 
@@ -338,29 +338,25 @@ async function handleMessageCreate(message, botId) {
   if (now - lastTime < MAROYAKA_COOLDOWN_MS) return;
   maroyakaCooldowns.set(message.channelId, now);
 
-  try {
-    const reply = await generateAiSummary(
-      prompts.maroyakaReaction,
-      message.content,
-    );
-    await message.channel.send(reply || MAROYAKA_FALLBACK_RESPONSES[0]).catch(() => {});
-  } catch {
-    const fallback =
-      MAROYAKA_FALLBACK_RESPONSES[
-        Math.floor(Math.random() * MAROYAKA_FALLBACK_RESPONSES.length)
-      ];
-    await message.channel.send(fallback).catch(() => {});
-  }
-
-  // 監視セッション開始
+  const initialContext = [`${message.author.displayName}: ${message.content}`];
   monitoringSessions.set(message.channelId, {
     expiresAt: now + MONITORING_DURATION_MS,
-    context: [`${message.author.displayName}: ${message.content}`],
+    context: initialContext,
   });
   setTimeout(
     () => monitoringSessions.delete(message.channelId),
     MONITORING_DURATION_MS,
   );
+
+  try {
+    const response = await generateAiSummary(
+      prompts.monitoringReaction,
+      initialContext.join("\n"),
+    );
+    if (response && !response.trimStart().startsWith("SKIP")) {
+      await message.channel.send(response).catch(() => {});
+    }
+  } catch {}
 }
 
 module.exports = {
