@@ -309,8 +309,9 @@ async function handleMessageCreate(message, botId) {
     }
   }
 
-  // 「まろやか」を含む投稿 → クールダウン付き反応
-  if (!message.content.includes("まろやか")) return;
+  // 「まろやかAI」またはボットへのメンションを含む投稿 → クールダウン付き反応
+  const mentionsBot = message.mentions.users.has(botId);
+  if (!mentionsBot && !message.content.includes("まろやかAI")) return;
   const now = Date.now();
   const lastTime = maroyakaCooldowns.get(message.channelId) ?? 0;
   if (now - lastTime < MAROYAKA_COOLDOWN_MS) return;
