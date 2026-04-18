@@ -3,6 +3,7 @@ const { Client, GatewayIntentBits, REST, Routes } = require("discord.js");
 const commands = require("./src/commands");
 const schedule = require("./src/schedule");
 const handlers = require("./src/handlers");
+const voice = require("./src/voice");
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.DISCORD_CLIENT_ID;
@@ -75,5 +76,9 @@ client.on("interactionCreate", async (interaction) => {
 client.on("messageCreate", (message) =>
   handlers.handleMessageCreate(message, client.user.id),
 );
+
+client.on("voiceStateUpdate", (oldState) => {
+  if (oldState.channelId) voice.checkAndLeaveIfEmpty(oldState.guild);
+});
 
 client.login(token);

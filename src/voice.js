@@ -115,6 +115,7 @@ function startReading(voiceChannel, textChannelId) {
   voiceStates.set(guildId, {
     connection,
     player,
+    voiceChannelId: voiceChannel.id,
     textChannelId,
     queue: [],
     processing: false,
@@ -149,6 +150,21 @@ function enqueueMessage(message) {
   processQueue(message.guildId);
 }
 
+function checkAndLeaveIfEmpty(guild) {
+  const guildId = guild.id;
+  const state = voiceStates.get(guildId);
+  if (!state) return;
+
+  const channel = guild.channels.cache.get(state.voiceChannelId);
+  if (!channel) return;
+
+  const humanCount = channel.members.filter((m) => !m.user.bot).size;
+  if (humanCount === 0) {
+    console.log(`[voice] VCが空になったため退出: guild=${guildId}`);
+    stopReading(guildId);
+  }
+}
+
 function isReading(guildId) {
   return voiceStates.has(guildId);
 }
@@ -161,6 +177,7 @@ module.exports = {
   startReading,
   stopReading,
   enqueueMessage,
+  checkAndLeaveIfEmpty,
   isReading,
   getReadingTextChannelId,
 };
