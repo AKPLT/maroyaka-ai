@@ -601,12 +601,17 @@ ${answer}
 }
 
 function parseUmiPuzzle(text) {
-  const puzzleMatch = text.match(/【問題】\s*([\s\S]*?)(?=【真相】)/);
-  const answerMatch = text.match(/【真相】\s*([\s\S]*?)$/);
-  return {
-    puzzle: puzzleMatch?.[1]?.trim() ?? null,
-    answer: answerMatch?.[1]?.trim() ?? null,
-  };
+  const PATTERNS = [
+    [/【問題】\s*([\s\S]*?)(?=【真相】)/, /【真相】\s*([\s\S]*?)$/],
+    [/\*\*問題\*\*\s*([\s\S]*?)(?=\*\*真相\*\*)/, /\*\*真相\*\*\s*([\s\S]*?)$/],
+    [/問題[：:]\s*([\s\S]*?)(?=真相[：:])/, /真相[：:]\s*([\s\S]*?)$/],
+  ];
+  for (const [pRe, aRe] of PATTERNS) {
+    const p = text.match(pRe)?.[1]?.trim();
+    const a = text.match(aRe)?.[1]?.trim();
+    if (p && a) return { puzzle: p, answer: a };
+  }
+  return { puzzle: null, answer: null };
 }
 
 function endUmiGame(channelId, channel, revealed = false) {
@@ -649,7 +654,10 @@ async function startUmiGame(message) {
 
     const raw = await generateAiSummary(umiGenPrompt, logText, progress);
     const { puzzle, answer } = parseUmiPuzzle(raw);
-    if (!puzzle || !answer) throw new Error("問題のパースに失敗");
+    if (!puzzle || !answer) {
+      console.error(`[umi] パース失敗 raw="${raw}"`);
+      throw new Error("問題のパースに失敗");
+    }
 
     const timeoutId = setTimeout(
       () => endUmiGame(message.channelId, message.channel),
