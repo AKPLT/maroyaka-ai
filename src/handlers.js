@@ -324,7 +324,7 @@ async function handleSetNewsTime(interaction) {
 }
 
 const WORDLE_KEYWORDS = /wordle|ワードル/i;
-const WORDLE_ROW_RE = /^[🟩🟨⬛]{5}/u;
+const WORDLE_ROW_RE = /^\d+\.\s*[🟩🟨⬛]{5}/u;
 const SLEEP = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function fetchTodaysWordleWord() {
@@ -337,32 +337,18 @@ async function fetchTodaysWordleWord() {
   return data.solution?.toUpperCase();
 }
 
-function parseWordleOutput(text, answer) {
+function parseWordleOutput(text) {
   const lines = text
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
-  const rows = [];
-  const comments = [];
 
-  for (const line of lines) {
-    if (WORDLE_ROW_RE.test(line)) {
-      rows.push(line);
-    } else {
-      comments.push(line);
-    }
-  }
+  const rows = lines
+    .filter((l) => WORDLE_ROW_RE.test(l))
+    // 各行末の英単語（推測単語）をネタバレタグで隠す
+    .map((l) => l.replace(/\b([A-Z]{5})\b/, "||$1||"));
 
-  if (rows.length === 0) return { rows: [text], closing: "" };
-
-  // 最終行の答え単語をネタバレタグで隠す
-  const lastIdx = rows.length - 1;
-  rows[lastIdx] = rows[lastIdx].replace(
-    new RegExp(`\\b${answer}\\b`, "i"),
-    `||${answer}||`,
-  );
-
-  return { rows, closing: comments.join("\n") };
+  return rows.length > 0 ? rows : [text];
 }
 
 async function handleWordleSolve(message) {
@@ -378,7 +364,7 @@ async function handleWordleSolve(message) {
     if (!word) throw new Error("解答が取得できませんでした");
 
     const result = await generateAiSummary(prompts.wordle, word);
-    const { rows, closing } = parseWordleOutput(result, word);
+    const rows = parseWordleOutput(result);
 
     // 最初の行でthinkingメッセージを上書き
     await thinking.edit(rows[0]);
@@ -386,10 +372,6 @@ async function handleWordleSolve(message) {
     for (let i = 1; i < rows.length; i++) {
       await SLEEP(1800);
       await message.channel.send(rows[i]);
-    }
-    if (closing) {
-      await SLEEP(1800);
-      await message.channel.send(closing);
     }
 
     console.log(
