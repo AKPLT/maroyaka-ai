@@ -557,6 +557,171 @@ async function handleNaturalCommand(message, commandName) {
   }
 }
 
+// ===== ウミガメのスープゲーム =====
+
+const UMI_KEYWORDS = /ウミガメ|水平思考|スープゲーム/;
+const UMI_GIVEUP_KEYWORDS =
+  /ギブアップ|降参|答え.*教えて|教えて.*答え|お手上げ|終わり|ゲーム終了/;
+const UMI_GAME_DURATION_MS = 60 * 60 * 1000;
+
+const activeGames = new Map();
+
+const UMI_GEN_SYSTEM = `あなたはウミガメのスープ（水平思考ゲーム）の出題者です。
+独創的で面白い問題を1つ生成してください。
+
+必ずこの形式のみで出力すること：
+
+【問題】
+（謎めいた状況を2〜4文で。真相が直接わからないようにすること）
+
+【真相】
+（問題の状況を完全に説明する真相を2〜5文で。「なるほど！」と思える内容にすること）
+
+絶対に守ること：日本語のみ・問題文に真相のヒントを含めない・有名すぎる問題は避けオリジナルにする`;
+
+function buildUmiJudgeSystem(puzzle, answer) {
+  return `あなたはウミガメのスープ（水平思考ゲーム）のゲームマスターです。
+
+【問題】
+${puzzle}
+
+【真相（絶対に漏らさないこと）】
+${answer}
+
+プレイヤーのメッセージに対して：
+- はい/いいえで答えられる質問 → 真相に基づき「はいっ！」「いいえっ！」「関係ありませんっ！」「どちらともいえますっ！」のいずれか1文だけ返す
+- 真相と概ね一致する解答 → 「🎉 正解ですっ！」から始め、真相を全文明かす
+- 真相と大きく異なる解答 → 「惜しいですっ！」または「違いますっ！」と1文だけ返す
+
+絶対に守ること：正解でない限り真相を絶対に漏らさない・語尾は「〜ですっ」などかわいい口調・正解なら必ず「🎉 正解ですっ！」を含める`;
+}
+
+function parseUmiPuzzle(text) {
+  const puzzleMatch = text.match(/【問題】\s*([\s\S]*?)(?=【真相】)/);
+  const answerMatch = text.match(/【真相】\s*([\s\S]*?)$/);
+  return {
+    puzzle: puzzleMatch?.[1]?.trim() ?? null,
+    answer: answerMatch?.[1]?.trim() ?? null,
+  };
+}
+
+function endUmiGame(channelId, channel, revealed = false) {
+  const game = activeGames.get(channelId);
+  if (!game) return;
+  clearTimeout(game.timeoutId);
+  activeGames.delete(channelId);
+  if (!revealed) {
+    channel
+      .send(
+        `⏰ 60分が経過しましたっ！時間切れですっ！\n\n**真相はこちらですっ：**\n${game.answer}`,
+      )
+      .catch(() => {});
+  }
+}
+
+async function startUmiGame(message) {
+  if (activeGames.has(message.channelId)) {
+    return message.channel.send(
+      "今ウミガメのスープゲームが進行中ですっ！終わるまで待ってくださいっ！",
+    );
+  }
+
+  const start = Date.now();
+  console.log(
+    `[umi] ゲーム開始 user=${message.author.tag} channel=${message.channelId}`,
+  );
+  const thinking = await message.channel.send(
+    "問題を考えていますっ…！少し待ってくださいっ！",
+  );
+
+  try {
+    const raw = await generateConversationReply(UMI_GEN_SYSTEM, [
+      {
+        role: "user",
+        content: "ウミガメのスープの問題を1つ生成してください。",
+      },
+    ]);
+
+    const { puzzle, answer } = parseUmiPuzzle(raw);
+    if (!puzzle || !answer) throw new Error("問題のパースに失敗");
+
+    const timeoutId = setTimeout(
+      () => endUmiGame(message.channelId, message.channel),
+      UMI_GAME_DURATION_MS,
+    );
+
+    activeGames.set(message.channelId, {
+      puzzle,
+      answer,
+      timeoutId,
+      isAnswering: false,
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle("🐢 ウミガメのスープ")
+      .setDescription(puzzle)
+      .setColor(0x74c7ec)
+      .setFooter({
+        text: "はい・いいえで答えられる質問をどうぞっ！制限時間は60分ですっ！",
+      })
+      .setTimestamp();
+
+    await thinking.edit({ content: "", embeds: [embed] });
+    await message.channel.send(
+      "質問はなんでもどうぞっ！わからなくなったら「ギブアップ」と言えば真相を教えますっ！",
+    );
+    console.log(
+      `[umi] 問題生成完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+    );
+  } catch (e) {
+    console.error(`[umi] 問題生成エラー: ${e.message}`);
+    activeGames.delete(message.channelId);
+    await thinking
+      .edit("問題の生成に失敗しましたっ…ごめんなさいっ！")
+      .catch(() => {});
+  }
+}
+
+async function handleUmiGameMessage(message) {
+  const game = activeGames.get(message.channelId);
+  if (!game || game.isAnswering) return;
+
+  if (UMI_GIVEUP_KEYWORDS.test(message.content)) {
+    endUmiGame(message.channelId, message.channel, true);
+    return message.channel.send(
+      `降参ですねっ！\n\n**真相はこちらですっ：**\n${game.answer}`,
+    );
+  }
+
+  game.isAnswering = true;
+  const start = Date.now();
+  console.log(
+    `[umi] 質問処理 user=${message.author.tag} q="${message.content.slice(0, 50)}"`,
+  );
+
+  try {
+    const reply = await generateConversationReply(
+      buildUmiJudgeSystem(game.puzzle, game.answer),
+      [{ role: "user", content: message.content }],
+    );
+
+    await message.channel.send(reply);
+    console.log(
+      `[umi] 返答完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+    );
+
+    if (reply.includes("🎉 正解ですっ")) {
+      endUmiGame(message.channelId, message.channel, true);
+    }
+  } catch (e) {
+    console.error(`[umi] 返答エラー: ${e.message}`);
+  } finally {
+    if (activeGames.has(message.channelId)) {
+      activeGames.get(message.channelId).isAnswering = false;
+    }
+  }
+}
+
 const MAROYAKA_FALLBACK_RESPONSES = [
   "呼びましたかっ？！",
   "なんですかっ？！",
@@ -634,6 +799,11 @@ async function handleMessageCreate(message, botId) {
   if (message.author.bot) return;
   if (schedule.isChannelExcluded(message.guildId, message.channelId)) return;
 
+  // アクティブなウミガメゲーム → 全メッセージをゲーム処理
+  if (activeGames.has(message.channelId)) {
+    return handleUmiGameMessage(message);
+  }
+
   // ボットへのリプライ → 会話継続
   if (message.reference?.messageId) {
     try {
@@ -669,6 +839,10 @@ async function handleMessageCreate(message, botId) {
   // 「まろやかAI」またはメンション → 必ず反応（空リプ）
   const mentionsBot = message.mentions.users.has(botId);
   if (!mentionsBot && !message.content.includes("まろやかAI")) return;
+
+  if (UMI_KEYWORDS.test(message.content)) {
+    return startUmiGame(message);
+  }
 
   if (WORDLE_KEYWORDS.test(message.content)) {
     return handleWordleSolve(message);
