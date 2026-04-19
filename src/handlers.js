@@ -447,6 +447,116 @@ async function handleWordleSolve(message) {
   }
 }
 
+const COMMAND_INTENT_MAP = [
+  {
+    pattern: /ニュース|全体.*要約|サーバー.*まとめ|全体.*まとめ/,
+    command: "news",
+  },
+  { pattern: /要約|まとめ|ダイジェスト|振り返り/, command: "summary" },
+  { pattern: /俳句|一句|五七五/, command: "haiku" },
+  { pattern: /小説|物語|ストーリー/, command: "story" },
+  { pattern: /質問/, command: "question" },
+  { pattern: /MVP|一番.*面白|面白.*発言|ベスト.*発言/i, command: "mvp" },
+  { pattern: /おみくじ|占い|運勢/, command: "fortune" },
+  { pattern: /称号|タイトル/, command: "title" },
+  { pattern: /指名手配|やらかし/, command: "wanted" },
+  {
+    pattern: /話題.*提案|提案.*話題|次.*話題|話題.*考え/,
+    command: "suggesttopic",
+  },
+];
+
+const NATURAL_PROMPT_KEY = { suggesttopic: "topic" };
+
+const NATURAL_EMBED_TITLE = {
+  ...EMBED_TITLES,
+  suggesttopic: "次の話題はこちらですっ",
+};
+
+function detectNaturalCommand(content) {
+  for (const { pattern, command } of COMMAND_INTENT_MAP) {
+    if (pattern.test(content)) return command;
+  }
+  return null;
+}
+
+async function handleNaturalCommand(message, commandName) {
+  if (isProcessing) {
+    return message.channel.send(BUSY_MESSAGE);
+  }
+
+  isProcessing = true;
+  const start = Date.now();
+  console.log(
+    `[msg] 自然言語コマンド command=${commandName} user=${message.author.tag} channel=${message.channelId}`,
+  );
+
+  const thinking = await message.channel.send(
+    "少し待ってくださいっ…考えていますっ！",
+  );
+  const progress = (msg) =>
+    thinking.edit({ content: msg, embeds: [] }).catch(() => {});
+
+  try {
+    const logResult =
+      commandName === "news"
+        ? await collectServerLogs(message.guild, progress)
+        : await collectChannelLogs(message.channel, progress);
+
+    const logText = logResult.text;
+    if (!logText) {
+      console.warn(
+        `[msg] 自然言語コマンド ログ取得結果が空 command=${commandName}`,
+      );
+      return thinking.delete().catch(() => {});
+    }
+
+    const promptKey = NATURAL_PROMPT_KEY[commandName] ?? commandName;
+    const promptConfig = prompts[promptKey];
+    const modelName =
+      commandName === "haiku" ? modelNameHaiku : modelNameCommon;
+
+    const replyContent = await generateAiSummary(
+      promptConfig,
+      logText,
+      progress,
+      modelName,
+    );
+
+    const embed = new EmbedBuilder()
+      .setTitle(
+        NATURAL_EMBED_TITLE[commandName] ??
+          getEmbedTitle(commandName, message.channel.name),
+      )
+      .setColor(0xf5c2e7)
+      .setTimestamp();
+
+    const fields = parseTopicsToFields(replyContent);
+    if (fields) {
+      embed.addFields(fields);
+    } else {
+      const safeContent =
+        replyContent.length > 4096
+          ? replyContent.substring(0, 4093) + "..."
+          : replyContent;
+      embed.setDescription(safeContent);
+    }
+
+    await thinking.edit({ content: "", embeds: [embed] });
+    console.log(
+      `[msg] 自然言語コマンド完了 command=${commandName} (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+    );
+  } catch (error) {
+    console.error(
+      `[msg] 自然言語コマンドエラー command=${commandName} (${((Date.now() - start) / 1000).toFixed(1)}s):`,
+      error,
+    );
+    await thinking.delete().catch(() => {});
+  } finally {
+    isProcessing = false;
+  }
+}
+
 const MAROYAKA_FALLBACK_RESPONSES = [
   "呼びましたかっ？！",
   "なんですかっ？！",
@@ -562,6 +672,11 @@ async function handleMessageCreate(message, botId) {
 
   if (WORDLE_KEYWORDS.test(message.content)) {
     return handleWordleSolve(message);
+  }
+
+  const matchedCommand = detectNaturalCommand(message.content);
+  if (matchedCommand) {
+    return handleNaturalCommand(message, matchedCommand);
   }
 
   const now = Date.now();
