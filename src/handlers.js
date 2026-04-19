@@ -6,6 +6,7 @@ const {
   generateConversationReply,
   modelNameCommon,
   modelNameHaiku,
+  modelNameReasoning,
 } = require("./ai");
 const schedule = require("./schedule");
 const { parseTopicsToFields } = require("./utils");
@@ -402,7 +403,11 @@ async function handleWordleSolve(message) {
     let solvedIn = 0;
 
     for (let turn = 1; turn <= 6; turn++) {
-      const raw = await generateConversationReply(WORDLE_SYSTEM, history);
+      const raw = await generateConversationReply(
+        WORDLE_SYSTEM,
+        history,
+        modelNameReasoning,
+      );
       const guess = (raw.match(/[A-Za-z]{5}/) || [""])[0].toUpperCase();
 
       if (guess.length !== 5) {
@@ -648,12 +653,16 @@ async function startUmiGame(message) {
     if (!logText) throw new Error("ログが取得できませんでした");
 
     await progress("問題を作っていますっ…もう少しですっ！");
-    const raw = await generateConversationReply(UMI_GEN_SYSTEM, [
-      {
-        role: "user",
-        content: `以下のDiscordサーバーのログをもとに、実際の出来事を題材としたウミガメのスープの問題を1つ生成してください。\n\n${logText}\n\n【問題】と【真相】の2ブロックのみ出力すること。`,
-      },
-    ]);
+    const raw = await generateConversationReply(
+      UMI_GEN_SYSTEM,
+      [
+        {
+          role: "user",
+          content: `以下のDiscordサーバーのログをもとに、実際の出来事を題材としたウミガメのスープの問題を1つ生成してください。\n\n${logText}\n\n【問題】と【真相】の2ブロックのみ出力すること。`,
+        },
+      ],
+      modelNameReasoning,
+    );
     const { puzzle, answer } = parseUmiPuzzle(raw);
     if (!puzzle || !answer) {
       console.error(`[umi] パース失敗 raw="${raw}"`);
@@ -718,6 +727,7 @@ async function handleUmiGameMessage(message) {
     const reply = await generateConversationReply(
       buildUmiJudgeSystem(game.puzzle, game.answer),
       [{ role: "user", content: message.content }],
+      modelNameReasoning,
     );
 
     await message.channel.send(reply);

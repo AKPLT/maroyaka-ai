@@ -15,6 +15,8 @@ const ollama = new Ollama({
 });
 const modelNameCommon = process.env.OLLAMA_MODEL;
 const modelNameHaiku = process.env.OLLAMA_HAIKU_MODEL;
+const modelNameReasoning =
+  process.env.OLLAMA_REASONING_MODEL ?? process.env.OLLAMA_MODEL;
 const logCharLimit = parseInt(process.env.LOG_CHAR_LIMIT ?? "16000", 10);
 const emojiPattern =
   /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
@@ -107,19 +109,23 @@ async function generateAiSummary(
   return lastOutput;
 }
 
-async function generateConversationReply(systemPrompt, messages) {
+async function generateConversationReply(
+  systemPrompt,
+  messages,
+  targetModel = modelNameCommon,
+) {
   const ollamaTimeoutMs = parseInt(
     process.env.OLLAMA_TIMEOUT_MS ?? "300000",
     10,
   );
   console.log(
-    `[ai] 会話返答生成 モデル=${modelNameCommon} 履歴=${messages.length}件`,
+    `[ai] 会話返答生成 モデル=${targetModel} 履歴=${messages.length}件`,
   );
   const start = Date.now();
   try {
     const response = await ollama.chat(
       {
-        model: modelNameCommon,
+        model: targetModel,
         messages: [{ role: "system", content: systemPrompt }, ...messages],
         options: {
           temperature: parseFloat(process.env.OLLAMA_TEMPERATURE ?? "0.2"),
@@ -150,4 +156,5 @@ module.exports = {
   generateConversationReply,
   modelNameCommon,
   modelNameHaiku,
+  modelNameReasoning,
 };
