@@ -324,8 +324,14 @@ async function handleSetNewsTime(interaction) {
 }
 
 const WORDLE_KEYWORDS = /wordle|ワードル/i;
-const WORDLE_ROW_RE = /^\d+\.\s*[🟩🟨⬛]{5}/u;
 const SLEEP = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const WORDLE_SYSTEM = `You are playing Wordle. Guess a valid 5-letter English word each turn.
+Feedback after each guess uses emoji:
+🟩 = correct letter, correct position
+🟨 = correct letter, wrong position
+⬛ = letter not in the word
+Reply with ONLY the 5-letter word in uppercase. No explanations, no punctuation.`;
 
 async function fetchTodaysWordleWord() {
   const today = new Date().toISOString().slice(0, 10);
@@ -337,18 +343,27 @@ async function fetchTodaysWordleWord() {
   return data.solution?.toUpperCase();
 }
 
-function parseWordleOutput(text) {
-  const lines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
+function computeWordleGrid(guess, answer) {
+  const result = ["⬛", "⬛", "⬛", "⬛", "⬛"];
+  const ansArr = answer.split("");
+  const gssArr = guess.split("");
 
-  const rows = lines
-    .filter((l) => WORDLE_ROW_RE.test(l))
-    // 各行末の英単語（推測単語）をネタバレタグで隠す
-    .map((l) => l.replace(/\b([A-Z]{5})\b/, "||$1||"));
-
-  return rows.length > 0 ? rows : [text];
+  for (let i = 0; i < 5; i++) {
+    if (gssArr[i] === ansArr[i]) {
+      result[i] = "🟩";
+      ansArr[i] = null;
+      gssArr[i] = null;
+    }
+  }
+  for (let i = 0; i < 5; i++) {
+    if (!gssArr[i]) continue;
+    const idx = ansArr.indexOf(gssArr[i]);
+    if (idx !== -1) {
+      result[i] = "🟨";
+      ansArr[idx] = null;
+    }
+  }
+  return result.join("");
 }
 
 async function handleWordleSolve(message) {
@@ -363,15 +378,32 @@ async function handleWordleSolve(message) {
     const word = await fetchTodaysWordleWord();
     if (!word) throw new Error("解答が取得できませんでした");
 
-    const result = await generateAiSummary(prompts.wordle, word);
-    const rows = parseWordleOutput(result);
+    const history = [{ role: "user", content: "Make your first guess." }];
 
-    // 最初の行でthinkingメッセージを上書き
-    await thinking.edit(rows[0]);
-    // 残りの行を時間差で送信
-    for (let i = 1; i < rows.length; i++) {
-      await SLEEP(1800);
-      await message.channel.send(rows[i]);
+    for (let turn = 1; turn <= 6; turn++) {
+      const raw = await generateConversationReply(WORDLE_SYSTEM, history);
+      const guess = (raw.match(/[A-Za-z]{5}/) || [""])[0].toUpperCase();
+
+      if (guess.length !== 5) {
+        console.warn(`[wordle] ターン${turn} 無効な推測: "${raw}"`);
+        continue;
+      }
+
+      const grid = computeWordleGrid(guess, word);
+      const row = `${turn}. ${grid} ||${guess}||`;
+
+      if (turn === 1) {
+        await thinking.edit(row);
+      } else {
+        await SLEEP(1800);
+        await message.channel.send(row);
+      }
+
+      history.push({ role: "assistant", content: guess });
+
+      if (grid === "🟩🟩🟩🟩🟩") break;
+
+      history.push({ role: "user", content: `${grid} Make your next guess.` });
     }
 
     console.log(
