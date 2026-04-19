@@ -566,22 +566,17 @@ const UMI_GAME_DURATION_MS = 60 * 60 * 1000;
 
 const activeGames = new Map();
 
-const umiGenPrompt = {
-  system: `あなたはウミガメのスープ（水平思考ゲーム）の出題者です。
-提供されたDiscordサーバーのログから、実際に起きた出来事を題材にして問題を1つ生成してください。
+const UMI_GEN_SYSTEM = `あなたはウミガメのスープ（水平思考ゲーム）の出題者です。
 
-必ずこの形式のみで出力すること：
+出力は必ず次の2ブロックのみ。余計な前置き・説明・コメントは一切書かないこと。
 
 【問題】
-（ログの出来事を謎めいた状況として2〜4文で描写する。真相・固有名詞・具体的な経緯が直接わからないようにすること）
+（ここにログの出来事を謎めいた状況として2〜4文で書く。固有名詞・経緯・オチが直接わからないようにすること）
 
 【真相】
-（ログの出来事の実際の経緯を2〜5文で説明する。「なるほど！」と思えるオチになるようにすること）
+（ここにログの出来事の実際の経緯を2〜5文で書く。「なるほど！」と思える内容にすること）
 
-絶対に守ること：日本語のみ・問題文に真相のヒントを含めない・ログにない出来事は作らない`,
-  user: (log) =>
-    `以下のDiscordサーバーのログをもとに、実際の出来事を題材としたウミガメのスープの問題を1つ生成してください。\n\n${log}\n\n必ず【問題】【真相】の形式で出力すること。`,
-};
+絶対に守ること：日本語のみ・問題文に真相のヒントを含めない・ログにない出来事は書かない`;
 
 function buildUmiJudgeSystem(puzzle, answer) {
   return `あなたはウミガメのスープ（水平思考ゲーム）のゲームマスターです。
@@ -652,7 +647,13 @@ async function startUmiGame(message) {
     );
     if (!logText) throw new Error("ログが取得できませんでした");
 
-    const raw = await generateAiSummary(umiGenPrompt, logText, progress);
+    await progress("問題を作っていますっ…もう少しですっ！");
+    const raw = await generateConversationReply(UMI_GEN_SYSTEM, [
+      {
+        role: "user",
+        content: `以下のDiscordサーバーのログをもとに、実際の出来事を題材としたウミガメのスープの問題を1つ生成してください。\n\n${logText}\n\n【問題】と【真相】の2ブロックのみ出力すること。`,
+      },
+    ]);
     const { puzzle, answer } = parseUmiPuzzle(raw);
     if (!puzzle || !answer) {
       console.error(`[umi] パース失敗 raw="${raw}"`);
