@@ -323,6 +323,44 @@ async function handleSetNewsTime(interaction) {
   });
 }
 
+const WORDLE_KEYWORDS = /wordle|ワードル/i;
+
+async function fetchTodaysWordleWord() {
+  const today = new Date().toISOString().slice(0, 10);
+  const res = await fetch(
+    `https://www.nytimes.com/svc/wordle/v2/${today}.json`,
+  );
+  if (!res.ok) throw new Error(`Wordle API ${res.status}`);
+  const data = await res.json();
+  return data.solution?.toUpperCase();
+}
+
+async function handleWordleSolve(message) {
+  const start = Date.now();
+  console.log(
+    `[msg] Wordle解読開始 user=${message.author.tag} channel=${message.channelId}`,
+  );
+  const thinking = await message.reply(
+    "今日のWordleを解いていますっ…！少し待ってくださいっ！",
+  );
+  try {
+    const word = await fetchTodaysWordleWord();
+    if (!word) throw new Error("解答が取得できませんでした");
+    const result = await generateAiSummary(prompts.wordle, word);
+    await thinking.edit(result);
+    console.log(
+      `[msg] Wordle解読完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,
+    );
+  } catch (e) {
+    console.error(
+      `[msg] Wordle解読エラー (${((Date.now() - start) / 1000).toFixed(1)}s): ${e.message}`,
+    );
+    await thinking
+      .edit("Wordleの取得に失敗しましたっ…ごめんなさいっ！")
+      .catch(() => {});
+  }
+}
+
 const MAROYAKA_FALLBACK_RESPONSES = [
   "呼びましたかっ？！",
   "なんですかっ？！",
@@ -436,6 +474,10 @@ async function handleMessageCreate(message, botId) {
   const mentionsBot = message.mentions.users.has(botId);
   if (!mentionsBot && !message.content.includes("まろやかAI")) return;
 
+  if (WORDLE_KEYWORDS.test(message.content)) {
+    return handleWordleSolve(message);
+  }
+
   const now = Date.now();
   const lastTime = maroyakaCooldowns.get(message.channelId) ?? 0;
   if (now - lastTime < MAROYAKA_COOLDOWN_MS) {
@@ -478,6 +520,7 @@ module.exports = {
   AI_COMMANDS,
   parseTopicsToFields,
   handleSlashCommand,
+  handleWordleSolve,
   handleSuggestTopic,
   handleSetNewsChannel,
   handleGetNewsChannel,
