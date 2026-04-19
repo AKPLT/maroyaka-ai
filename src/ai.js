@@ -114,12 +114,25 @@ async function generateConversationReply(
   messages,
   targetModel = modelNameCommon,
 ) {
+  const isReasoning = targetModel !== modelNameCommon;
   const ollamaTimeoutMs = parseInt(
-    process.env.OLLAMA_TIMEOUT_MS ?? "300000",
+    isReasoning
+      ? (process.env.OLLAMA_REASONING_TIMEOUT_MS ??
+          process.env.OLLAMA_TIMEOUT_MS ??
+          "600000")
+      : (process.env.OLLAMA_TIMEOUT_MS ?? "300000"),
+    10,
+  );
+  const numPredict = parseInt(
+    isReasoning
+      ? (process.env.OLLAMA_REASONING_NUM_PREDICT ??
+          process.env.OLLAMA_NUM_PREDICT ??
+          "2000")
+      : (process.env.OLLAMA_NUM_PREDICT ?? "1500"),
     10,
   );
   console.log(
-    `[ai] 会話返答生成 モデル=${targetModel} 履歴=${messages.length}件`,
+    `[ai] 会話返答生成 モデル=${targetModel} 履歴=${messages.length}件 num_predict=${numPredict}`,
   );
   const start = Date.now();
   try {
@@ -133,7 +146,7 @@ async function generateConversationReply(
           repeat_penalty: parseFloat(
             process.env.OLLAMA_REPEAT_PENALTY ?? "1.2",
           ),
-          num_predict: parseInt(process.env.OLLAMA_NUM_PREDICT ?? "1500", 10),
+          num_predict: numPredict,
         },
       },
       { signal: AbortSignal.timeout(ollamaTimeoutMs) },
