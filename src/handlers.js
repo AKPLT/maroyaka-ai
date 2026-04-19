@@ -324,14 +324,21 @@ async function handleSetNewsTime(interaction) {
 }
 
 const WORDLE_KEYWORDS = /wordle|ワードル/i;
-const SLEEP = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const WORDLE_SYSTEM = `You are playing Wordle. Guess a valid 5-letter English word each turn.
-Feedback after each guess uses emoji:
-🟩 = correct letter, correct position
-🟨 = correct letter, wrong position
-⬛ = letter not in the word
-Reply with ONLY the 5-letter word in uppercase. No explanations, no punctuation.`;
+
+Feedback after each guess:
+🟩 = correct letter in the correct position — always keep this letter here
+🟨 = correct letter but wrong position — use it in a different position
+⬛ = this letter is not in the word at all — never use it again
+
+Rules you must follow:
+- NEVER use a letter marked ⬛ in any future guess
+- ALWAYS place 🟩 letters in exactly the same position
+- ALWAYS include 🟨 letters but in a different position than before
+- Each guess must be a real English word
+
+Reply with ONLY the 5-letter uppercase word. No explanation.`;
 
 async function fetchTodaysWordleWord() {
   const today = new Date().toISOString().slice(0, 10);
@@ -366,12 +373,24 @@ function computeWordleGrid(guess, answer) {
   return result.join("");
 }
 
+function explainGrid(guess, grid) {
+  const cells = [...grid];
+  return guess
+    .split("")
+    .map((letter, i) => {
+      if (cells[i] === "🟩") return `${letter}=correct position`;
+      if (cells[i] === "🟨") return `${letter}=wrong position`;
+      return `${letter}=not in word`;
+    })
+    .join(", ");
+}
+
 async function handleWordleSolve(message) {
   const start = Date.now();
   console.log(
     `[msg] Wordle解読開始 user=${message.author.tag} channel=${message.channelId}`,
   );
-  const thinking = await message.reply(
+  const thinking = await message.channel.send(
     "今日のWordleを解いていますっ…！少し待ってくださいっ！",
   );
   try {
@@ -379,6 +398,8 @@ async function handleWordleSolve(message) {
     if (!word) throw new Error("解答が取得できませんでした");
 
     const history = [{ role: "user", content: "Make your first guess." }];
+    const rows = [];
+    let solvedIn = 0;
 
     for (let turn = 1; turn <= 6; turn++) {
       const raw = await generateConversationReply(WORDLE_SYSTEM, history);
@@ -390,21 +411,28 @@ async function handleWordleSolve(message) {
       }
 
       const grid = computeWordleGrid(guess, word);
-      const row = `${turn}. ${grid} ||${guess}||`;
-
-      if (turn === 1) {
-        await thinking.edit(row);
-      } else {
-        await SLEEP(1800);
-        await message.channel.send(row);
-      }
-
+      rows.push(`${turn}. ${grid} ||${guess}||`);
       history.push({ role: "assistant", content: guess });
 
-      if (grid === "🟩🟩🟩🟩🟩") break;
+      if (grid === "🟩🟩🟩🟩🟩") {
+        solvedIn = turn;
+        break;
+      }
 
-      history.push({ role: "user", content: `${grid} Make your next guess.` });
+      history.push({
+        role: "user",
+        content: `Result: ${grid} (${explainGrid(guess, grid)})\nMake your next guess using this feedback.`,
+      });
     }
+
+    const impressionPrompt = solvedIn
+      ? `今日のWordleを${solvedIn}手で解けましたっ！一言感想を「〜ですっ」口調で1文だけお願いします。`
+      : `今日のWordleを6手以内に解けませんでしたっ…一言感想を「〜ですっ」口調で1文だけお願いします。`;
+    const impression = await generateConversationReply(CONVERSATION_SYSTEM, [
+      { role: "user", content: impressionPrompt },
+    ]);
+
+    await thinking.edit([...rows, "", impression].join("\n"));
 
     console.log(
       `[msg] Wordle解読完了 (${((Date.now() - start) / 1000).toFixed(1)}s)`,
