@@ -4,7 +4,7 @@ const cron = require("node-cron");
 const { EmbedBuilder } = require("discord.js");
 const prompts = require("./prompts");
 const { collectServerLogs } = require("./logs");
-const { generateAiSummary } = require("./ai");
+const { generateAiSummary, modelNameHaiku } = require("./ai");
 const { parseTopicsToFields } = require("./utils");
 
 const ROOT = path.join(__dirname, "..");
@@ -328,7 +328,12 @@ async function postScheduledNews(channel) {
       summaryPrompt.model,
     );
     const mvp = await generateAiSummary(prompts.mvp, logText);
-    const haiku = await generateAiSummary(prompts.haiku, logText);
+    const haiku = await generateAiSummary(
+      prompts.haiku,
+      logText,
+      null,
+      modelNameHaiku,
+    );
 
     const embed = new EmbedBuilder()
       .setTitle("24時間のニュースですっ")
